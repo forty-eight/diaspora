@@ -13,7 +13,7 @@ var planetsRef = new Firebase("https://ss16-diaspora.firebaseio.com/planets");
 // THREEJS EXTENSIONS SETUP //
 //////////////////////////////
 
-THREEx.Planets.baseURL	= 'js/vendor/threex-planets/';
+// THREEx.Planets.baseURL	= 'js/vendor/threex-planets/';
 
 /////////////
 // GLOBALS //
@@ -194,7 +194,6 @@ function Comet( startX, startY, endX, endY, size ) {
   this.startY = startY;
   this.endX = endX;
   this.endY = endY;
-  this.size = size || getRandomInt(5, 20);
   
   this.particleOptions = {
     spawnRate: 1500,
@@ -212,7 +211,8 @@ function Comet( startX, startY, endX, endY, size ) {
     colorRandomness: .2,
     turbulence: .5,
     lifetime: 2,
-    sizeRandomness: .4
+    sizeRandomness: .4,
+    size: size || getRandomInt(10, 20)
   };
   
   this.cometOptions.position.x = this.startX;
@@ -229,6 +229,7 @@ Comet.prototype.render = function() {
   var delta = clock.getDelta() * this.particleOptions.timeScale;
   
   tick += delta;
+  if (tick < 0) tick = 0;
   
   this.cometOptions.position.x = this.cometOptions.position.x + 1;
   this.cometOptions.position.y = this.cometOptions.position.y + 1;
@@ -240,9 +241,9 @@ Comet.prototype.render = function() {
   }
   
   // debugging stuff
-  // if ((Math.round(tick * 100) / 100) % 1 === 0) {
-  //     console.log(this)
-  // }
+  if ((Math.round(tick * 100) / 100) % 1 === 0) {
+      console.log(this)
+  }
 }
 
 
@@ -366,9 +367,9 @@ function onDocumentMouseDown( event ) {
       }
       setTimeout(function() {
         planets[i].mesh.spinning = false;
-      }, 1000);
+      }, 500);
     });
-    comets.push( new Comet(startX, startY, endX, endY, 15) );
+    comets.push( new Comet(startX, startY, endX, endY, 60) );
     
     // Clear the clicks if we fired a comet.
     clicks = [];
@@ -397,8 +398,6 @@ function animate() {
     comet.particleSystem.update(tick);
   });
 			
-	
-
   renderer.render( scene, camera );
 
 }
