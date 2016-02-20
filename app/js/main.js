@@ -1,5 +1,15 @@
 // (function() {
 
+//////////////////////////////
+// THREEJS EXTENSIONS SETUP //
+//////////////////////////////
+
+THREEx.Planets.baseURL	= 'js/vendor/threex-planets/';
+
+/////////////
+// GLOBALS //
+/////////////
+
 var newGame = false;
 var scene, camera, renderer, mouse, controls;
 var clock = new THREE.Clock(true);
@@ -29,33 +39,39 @@ if ( !window.location.hash.substr(1).length ) {
 ////////////
 
 var planetModel = function( x, y, units, spinning ) {
-  var geometry = new THREE.BoxGeometry( 100, 100, 100 );
-  var material = new THREE.MeshBasicMaterial( { color: 'white', wireframe: true } );
-  
+  // var geometry = new THREE.BoxGeometry( 100, 100, 100 );
+  // var material = new THREE.MeshBasicMaterial( { color: 'white', wireframe: true } );
+  // this.mesh = new THREE.Mesh( geometry, material );
+
+  var geometry = new THREE.SphereGeometry( 100, 100, 100 );
+  var material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
   this.mesh = new THREE.Mesh( geometry, material );
+
   this.mesh.position.set( x || 0, y || 0, 10 );
   this.mesh.id = ++id;
   this.mesh.owner = 'player1';
   this.mesh.units = units || 10;
   this.mesh.spinning = spinning || false;
   
-  this.getUnits = function() {
-    
-  }
-  this.setUnits = function() {
-    
-  }
-  
+  // We only want to push the planets to Firebase if this is a new game meaning
+  // they're not already there.
   if ( !newGame ) return;
   planetsRef.push({
     gameid: gameID,
-    units: 0,
-    owner: null,
+    units: this.mesh.units,
+    owner: this.mesh.owner,
     position: {
       x: x || 0,
       y: y || 0
     }
   });
+  
+  this.getUnits = function() {
+    
+  };
+  this.setUnits = function() {
+    
+  };
   
 }
 
@@ -88,7 +104,9 @@ var cometModel = function( startX, startY, endX, endY, size ) {
     this.size = size || getRandomInt(5, 20);
     // @TODO this is incredibly rough and doesn't work very well
     // We need to assign start and end coordinates and move it along that line
-    // The start and end coordinates need to come from the two selected planets.
+    // The start and end coordinates need to come from the two planets selected
+    // by the user. The first planet they select is the start, the second is the
+    // end. We currently don't even store their clicking anywhere.
     this.render = function() {
       var delta = clock.getDelta() * particleOptions.timeScale;
 	    
@@ -166,26 +184,32 @@ authRef.onAuth(function( authData ) {
 
 // Check if planets already exist for this game
 planetsRef.once('value', function(snapshot) {
+  console.log(planets)
   var data = snapshot.val() || {};
-  console.log(data)
-  var planetsExistAlready = false;
   Object.keys(data).forEach(function(planetID) {
     if ( data[planetID].gameid == gameID ) {
-      planetsExistAlready = true;
+      planets.push( new planetModel(data[planetID].position.x, data[planetID].position.y) );
     }
   });
   
-  if ( !planetsExistAlready ) {
-    // Create the planets
+  if ( !planets.length ) {
+    // Create some new planets
     newGame = true;
     for (var i = getRandomInt(5, 10); i > 0; i--) {
       planets.push( new planetModel(getRandomInt(-500, 500), getRandomInt(-500, 500)) );
     }
-  } else {
-    for (var i = getRandomInt(5, 10); i > 0; i--) {
-      planets.push( new planetModel(getRandomInt(-500, 500), getRandomInt(-500, 500)) );
-    }
+  // } else {
+  //   // If they do exist, we want to grab them and render them. They need to be in
+  //   // the same locations for both players.
+  //   for (var i = getRandomInt(5, 10); i > 0; i--) {
+  //     planets.push( new planetModel(getRandomInt(-500, 500), getRandomInt(-500, 500)) );
+  //   }
   }
+  console.log(planets)
+  
+  // After the planets are loaded kick everything off.
+  init();
+  animate();
   
 });
 
@@ -218,12 +242,12 @@ function init() {
 	scene.add( particleSystem );
 	
   camera.position.z = 1000;
-  
+  console.log('planets',planets);
   planets.forEach(function( planet ) {
     scene.add( planet.mesh );
   });
 
-  renderer = new THREE.WebGLRenderer();
+  renderer = new THREE.WebGLRenderer({antialias: true});
   renderer.setSize( window.innerWidth, window.innerHeight );
 
   document.body.appendChild( renderer.domElement );
@@ -282,8 +306,5 @@ function animate() {
   renderer.render( scene, camera );
 
 }
-
-init();
-animate();
 
 // })();

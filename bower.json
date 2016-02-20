@@ -2,7 +2,8 @@
   "name": "temp",
   "version": "0.0.0",
   "dependencies": {
-    "threejs": ""
+    "threejs": "",
+    "threex.planets": "https://github.com/jeromeetienne/threex.planets/archive/master.zip"
   }
 }
 
