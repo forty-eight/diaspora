@@ -35,58 +35,118 @@ var currentGame,
     gamesRef = new Firebase("https://ss16-diaspora.firebaseio.com/game"),
     gameRef;
 
-// If there's a hash in the URL, we assume it's a game id.
-if ( window.location.hash.substr(1).length ) {
-  gameID = window.location.hash.substr(1);
-  gameRef = new Firebase("https://ss16-diaspora.firebaseio.com/game/" + gameID);
-  gameRef.once('value', function(snapshot) {
-    currentGame = snapshot.val();
-    var promises = Object.keys(currentGame.planets).map(function(planetID) {
-      return planetsRef.child(currentGame.planets[planetID]).once('value', function(snapshot) {
-        var planet = snapshot.val();
-        console.log(planet)
-        planets.push( new planetModel(planet.position.x, planet.position.y) );
+
+////////////////
+// AUTH STUFF //
+////////////////
+
+// Firebase will define this after authentication.
+var players = {};
+var currentUser;
+
+// Authenticate the user anonymously.
+if ( !authRef.getAuth() ) {
+  authRef.authAnonymously( function( error, authData ) {
+    if ( error ) {
+      console.log('Login Failed!', error);
+    }
+  }, {remember: 'sessionOnly'});
+}
+
+// After authentication completes.
+authRef.onAuth(function( authData ) {
+  if ( !authData ) return;
+
+  // If there's a hash in the URL, we assume it's a game id.
+  if ( window.location.hash.substr(1).length ) {
+    console.log('building existing game');
+    gameID = window.location.hash.substr(1);
+    gameRef = new Firebase("https://ss16-diaspora.firebaseio.com/game/" + gameID);
+    gameRef.once('value', function(snapshot) {
+      currentGame = snapshot.val();
+      var planetPromises = Object.keys(currentGame.planets).map(function(planetID) {
+        return planetsRef.child(currentGame.planets[planetID]).once('value', function(snapshot) {
+          var planet = snapshot.val();
+          console.log(planet)
+          planets.push( new planetModel(planet.position.x, planet.position.y) );
+        });
+      });
+      var playerPromises = [];
+      if (currentGame.players) {
+        var playerPromises = Object.keys(currentGame.players).map(function(playerID) {
+          return playersRef.child(currentGame.players[playerID]).once('value', function(snapshot) {
+            var player = snapshot.key();
+            players[player] = player; // todo: make a players model
+            console.log('num users',Object.keys(players).length);
+          });
+        });
+      }
+      var allPromises = planetPromises.concat(playerPromises);
+      Promise.all( allPromises ).then(function() {
+        setupCurrentPlayer(authData);
+        go(); // might need to wait for stuff to happen in setupCurrentPlayer?
       });
     });
-    Promise.all( promises ).then( go );
-  });
-} else {
-  // Store the game.
-  gamesRef.push({
+  } else {
+    // Store the game.
+    console.log('creating a new game');
+    gamesRef.push({
+      ready: false,
+      over: false,
+      timestamp: new Date().getTime()
+    }).then(function(snapshot) {
+      gameID = snapshot.key();
+      gameRef = new Firebase("https://ss16-diaspora.firebaseio.com/game/" + gameID);
+      newGame = true;
+      for (var i = getRandomInt(5, 10); i > 0; i--) {
+        do {
+          x = getRandomInt(-500, 500);
+          y = getRandomInt(-500, 500);
+          // console.log(x, y)
+        } while (planetIsTooClose(x, y))
+        planets.push( new planetModel(x, y) );
+      }
+      window.location.hash = gameID;
+      setupCurrentPlayer(authData, 0);
+      go(); // might need to wait for stuff to happen in setupCurrentPlayer?
+    });
+  }
+});
+
+function setupCurrentPlayer(authData) {
+  // Store the user as a player.
+  var playerId = playersRef.push({
+    avatar: 'http://www.gravatar.com/avatar/' + CryptoJS.MD5( authData.uid ) + '?d=retro',
+    gameid: gameID,
     ready: false,
-    over: false,
+    attacking: {
+      fromPlanet: null,
+      toPlanet: null
+    },
+    authData: authData,
     timestamp: new Date().getTime()
-  }).then(function(snapshot) {
-    gameID = snapshot.key();
-    gameRef = new Firebase("https://ss16-diaspora.firebaseio.com/game/" + gameID);
-    newGame = true;
-    for (var i = getRandomInt(5, 10); i > 0; i--) {
-      do {
-        x = getRandomInt(-500, 500);
-        y = getRandomInt(-500, 500);
-        // console.log(x, y)
-      } while (planetIsTooClose(x, y))
-      planets.push( new planetModel(x, y) );
-    }
-    window.location.hash = gameID;
-    go();
-  });
+  }).key();
+  // Update the current user
+  players[playerId] = playerId; // need a player model
+  currentUser = playerId;
+  gameRef.child('players/'+playerId).set(currentUser);
+  console.log('user id: ', currentUser);
+  console.log('game id: ', gameID);
+  // If the user closes the tab, delete them.
+  this.playersRef.child( currentUser ).onDisconnect().remove();
+  this.gameRef.child('players').child(currentUser).onDisconnect().remove();
 }
 
 function go() {
   init();
   animate();
 }
-           
-// Firebase will define this after authentication.
-var players = {};
-var currentUser;
 
 ////////////
 // MODELS //
 ////////////
 
-function planetModel( x, y, units, spinning ) {
+function planetModel( x, y, units, spinning, owner ) {
   // var geometry = new THREE.BoxGeometry( 100, 100, 100 );
   // var material = new THREE.MeshBasicMaterial( { color: 'white', wireframe: true } );
   // this.mesh = new THREE.Mesh( geometry, material );
@@ -125,114 +185,82 @@ function planetModel( x, y, units, spinning ) {
   
 }
 
-var particleOptions = {
-	spawnRate: 15000,
-	horizontalSpeed: 1.5,
-	verticalSpeed: 1.33,
-	timeScale: 1
-};
 
-var cometOptions = {
-	position: new THREE.Vector3(),
-	positionRandomness: .3,
-	velocity: new THREE.Vector3(),
-	velocityRandomness: .5,
-	color: 'red',
-	colorRandomness: .2,
-	turbulence: .5,
-	lifetime: 2,
-	sizeRandomness: .4
-};
 
-function cometModel( startX, startY, endX, endY, size ) {
-    this.startX = startX;
-    this.startY = startY;
-    this.endX = endX;
-    this.endY = endY;
-    this.size = size || getRandomInt(5, 20);
-    // @TODO this is incredibly rough and doesn't work very well
-    // We need to assign start and end coordinates and move it along that line
-    // The start and end coordinates need to come from the two planets selected
-    // by the user. The first planet they select is the start, the second is the
-    // end. We currently don't even store their clicking anywhere.
+
+
+function Comet( startX, startY, endX, endY, size ) {
+  this.startX = startX;
+  this.startY = startY;
+  this.endX = endX;
+  this.endY = endY;
+  this.size = size || getRandomInt(5, 20);
+  
+  this.particleOptions = {
+    spawnRate: 1500,
+    horizontalSpeed: 1.5,
+    verticalSpeed: 1.33,
+    timeScale: 1
+  };
+  
+  this.cometOptions = {
+    position: new THREE.Vector3(),
+    positionRandomness: .3,
+    velocity: new THREE.Vector3(),
+    velocityRandomness: .5,
+    color: 'red',
+    colorRandomness: .2,
+    turbulence: .5,
+    lifetime: 2,
+    sizeRandomness: .4
+  };
+  
+  this.cometOptions.position.x = this.startX;
+  this.cometOptions.position.y = this.startY;
+  
+  this.particleSystem = new THREE.GPUParticleSystem({
+		maxParticles: 250000
+	});
+	
+	scene.add( this.particleSystem );
+}
+
+Comet.prototype.render = function() {
+  var delta = clock.getDelta() * this.particleOptions.timeScale;
+  
+  tick += delta;
+  
+  this.cometOptions.position.x = this.cometOptions.position.x + 1;
+  this.cometOptions.position.y = this.cometOptions.position.y + 1;
     
-    // render() is called in the animate loop. it's called every frame (60 times/sec)
-    this.render = function() {
-      var delta = clock.getDelta() * particleOptions.timeScale;
-	    
-    	tick += delta;
-    	if (tick < 0) tick = 0;
-        
-      cometOptions.size = this.size;
-      
-      cometOptions.position.x = this.startX + tick * 100;
-  		cometOptions.position.y = this.startY + tick * 100;
-
-  		if (delta > 0) {
-    		for (var x = 0; x < 15000 * delta; x++) {
-    			particleSystem.spawnParticle(cometOptions);
-    		}
-  		}
-  		
-  		// debugging stuff
-  		if ((Math.round(tick * 100) / 100) % 1 === 0) {
-  		    console.log(cometOptions.position)
-  		}
+  if (delta > 0) {
+    for (var x = 0; x < 15000 * delta; x++) {
+      this.particleSystem.spawnParticle(this.cometOptions);
     }
+  }
+  
+  // debugging stuff
+  // if ((Math.round(tick * 100) / 100) % 1 === 0) {
+  //     console.log(this)
+  // }
 }
 
-
-////////////////
-// AUTH STUFF //
-////////////////
-
-// Authenticate the user anonymously.
-if ( !authRef.getAuth() ) {
-  authRef.authAnonymously( function( error, authData ) {
-    if ( error ) {
-      console.log('Login Failed!', error);
-    }
-  }, {remember: 'sessionOnly'});
-}
-
-// After authentication completes.
-authRef.onAuth(function( authData ) {
-  if ( !authData ) return;
-  // Store the user as a player.
-  playersRef.child( authData.uid ).set({
-    avatar: 'http://www.gravatar.com/avatar/' + CryptoJS.MD5( authData.uid ) + '?d=retro',
-    gameid: gameID,
-    ready: false,
-    attacking: {
-      fromPlanet: null,
-      toPlanet: null
-    },
-    authData: authData,
-    timestamp: new Date().getTime()
-  });
-  // Update the current user.
-  currentUser = authData.uid;
-  console.log('user id: ', currentUser);
-  console.log('game id: ', gameID);
-  // If the user closes the tab, delete them.
-  this.playersRef.child( authData.uid ).onDisconnect().remove();
-});
 
 // Get the players
-playersRef.on('value', function(snapshot) {
-  var data = snapshot.val() || {};
-  Object.keys(data).forEach(function(playerID) {
-    if ( data[playerID].gameid == gameID ) {
-      players[playerID] = data[playerID];
-    }
-  });
-  // console.log('players', players);
-});
+// playersRef.on('value', function(snapshot) {
+//   var data = snapshot.val() || {};
+//   Object.keys(data).forEach(function(playerID) {
+//     if ( data[playerID].gameid == gameID ) {
+//       players[playerID] = data[playerID];
+//     }
+//   });
+//   // console.log('players', players);
+// });
 
-playersRef.on('child_removed', function(snapshot) {
-  // updates the players object
-  delete players[snapshot.key()];
-});
+// playersRef.on('child_removed', function(snapshot) {
+//   // updates the players object
+//   delete players[snapshot.key()];
+// });
 
 
 ////////////////
@@ -260,12 +288,6 @@ function init() {
   projector = new THREE.Projector();
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
-  
-  particleSystem = new THREE.GPUParticleSystem({
-		maxParticles: 250000
-	});
-	
-	scene.add( particleSystem );
 
   pointLight1 = new THREE.PointLight(0xFFFFFF);
   pointLight1.position.x = 0;
@@ -346,7 +368,7 @@ function onDocumentMouseDown( event ) {
         planets[i].mesh.spinning = false;
       }, 1000);
     });
-    comets.push( new cometModel(startX, startY, endX, endY, 15) );
+    comets.push( new Comet(startX, startY, endX, endY, 15) );
     
     // Clear the clicks if we fired a comet.
     clicks = [];
@@ -372,9 +394,10 @@ function animate() {
   
   comets.forEach(function( comet ) {
     comet.render();
+    comet.particleSystem.update(tick);
   });
 			
-	particleSystem.update(tick);
+	
 
   renderer.render( scene, camera );
 
