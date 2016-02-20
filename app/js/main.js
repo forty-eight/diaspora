@@ -68,7 +68,7 @@ authRef.onAuth(function( authData ) {
         return planetsRef.child(currentGame.planets[planetID]).once('value', function(snapshot) {
           var planet = snapshot.val();
           console.log(planet)
-          planets.push( new planetModel(planet.position.x, planet.position.y) );
+          planets.push( new Planet(planet.position.x, planet.position.y) );
         });
       });
       var playerPromises = [];
@@ -104,7 +104,7 @@ authRef.onAuth(function( authData ) {
           y = getRandomInt(-500, 500);
           // console.log(x, y)
         } while (planetIsTooClose(x, y))
-        planets.push( new planetModel(x, y) );
+        planets.push( new Planet(x, y) );
       }
       window.location.hash = gameID;
       setupCurrentPlayer(authData, 0);
@@ -146,10 +146,7 @@ function go() {
 // MODELS //
 ////////////
 
-function planetModel( x, y, units, spinning, owner ) {
-  // var geometry = new THREE.BoxGeometry( 100, 100, 100 );
-  // var material = new THREE.MeshBasicMaterial( { color: 'white', wireframe: true } );
-  // this.mesh = new THREE.Mesh( geometry, material );
+function Planet( x, y, units, spinning, owner ) {
 
   var geometry = new THREE.SphereGeometry( 50, 16, 16 );
   var material = new THREE.MeshLambertMaterial( {color: 0xffff00} );
@@ -160,6 +157,13 @@ function planetModel( x, y, units, spinning, owner ) {
   // this.mesh.owner = 'player1';
   this.mesh.units = units || 10;
   this.mesh.spinning = spinning || false;
+  
+  this.getUnits = function() {
+    return this.units;
+  };
+  this.setUnits = function() {
+    
+  };
   
   // We only want to push the planets to Firebase if this is a new game. Otherwise
   // it means there's another player that already has planets so we want to render
@@ -175,13 +179,6 @@ function planetModel( x, y, units, spinning, owner ) {
     }
   });
   gameRef.child('planets').push(newPlanet.key());
-  
-  this.getUnits = function() {
-    
-  };
-  this.setUnits = function() {
-    
-  };
   
 }
 
