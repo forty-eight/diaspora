@@ -1,6 +1,49 @@
 // (function() {
 
-var fbRef = new Firebase("https://ss16-diaspora.firebaseio.com/");
+// Grab the game ID or randomly generate one.
+var gameID = window.location.hash.substr(1).length
+           ? window.location.hash.substr(1)
+           : Math.random().toString(36).substring(2);
+           
+// Firebase will define this after authentication.
+var currentUser;
+
+// Update the URL if we generated a fresh game ID.
+if ( !window.location.hash.substr(1).length ) {
+    window.location.hash = gameID;
+}
+
+// Create some Firebase references.
+var authRef = new Firebase("https://ss16-diaspora.firebaseio.com/");
+var playersRef = new Firebase("https://ss16-diaspora.firebaseio.com/players");
+
+if ( !authRef.getAuth() ) {
+  // Authenticate the user anonymously.
+  authRef.authAnonymously( function( error, authData ) {
+    if ( error ) {
+      console.log('Login Failed!', error);
+    }
+  }, {remember: 'sessionOnly'});
+}
+
+authRef.onAuth(function( authData ) {
+  if ( !authData ) return;
+  // Store the user's info to the 'players' child.
+  playersRef.child( authData.uid ).set({
+    avatar: 'http://www.gravatar.com/avatar/' + CryptoJS.MD5( authData.uid ) + '?d=retro',
+    gameid: gameID,
+    ready: false,
+    authData: authData,
+    timestamp: new Date().getTime(),
+    players: null
+  });
+  // Update the current user.
+  currentUser = authData.uid
+  // If the user closes the tab, delete them.
+  this.playersRef.child( authData.uid ).onDisconnect().remove();
+});
+
+
 
 var scene, camera, renderer, mouse, controls;
 var clock = new THREE.Clock(true);
