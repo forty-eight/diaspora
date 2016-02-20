@@ -27,7 +27,7 @@ var gameID = window.location.hash.substr(1).length
            : Math.random().toString(36).substring(2);
            
 // Firebase will define this after authentication.
-var players = [];
+var players = {};
 var currentUser;
 
 // Update the URL if we generated a fresh game ID.
@@ -45,7 +45,7 @@ var planetModel = function( x, y, units, spinning ) {
   // var material = new THREE.MeshBasicMaterial( { color: 'white', wireframe: true } );
   // this.mesh = new THREE.Mesh( geometry, material );
 
-  var geometry = new THREE.SphereGeometry( 100, 16, 16 );
+  var geometry = new THREE.SphereGeometry( 50, 16, 16 );
   var material = new THREE.MeshLambertMaterial( {color: 0xffff00} );
   this.mesh = new THREE.Mesh( geometry, material );
 
@@ -55,18 +55,20 @@ var planetModel = function( x, y, units, spinning ) {
   this.mesh.units = units || 10;
   this.mesh.spinning = spinning || false;
   
-  // We only want to push the planets to Firebase if this is a new game meaning
-  // they're not already there.
+  // We only want to push the planets to Firebase if this is a new game. Otherwise
+  // it means there's another player that already has planets so we want to render
+  // those in the exact same locations.
   if ( !newGame ) return;
-  planetsRef.push({
+  var newPlanet = planetsRef.push({
     gameid: gameID,
     units: this.mesh.units,
-    owner: this.mesh.owner || '',
+    owner: this.mesh.owner || null,
     position: {
       x: x || 0,
       y: y || 0
     }
   });
+  gameRef.child('planets').push(newPlanet.key());
   
   this.getUnits = function() {
     
@@ -158,7 +160,15 @@ gameRef.set({
   ready: false,
   over: false,
   timestamp: new Date().getTime()
+  // planets: foo()
 });
+
+// function foo() {
+//   var planets = {};
+//   // loop through and create planets
+//   planets[id] = planet;
+//   return [1,2,3]
+// }
 
 // After authentication completes.
 authRef.onAuth(function( authData ) {
@@ -173,11 +183,8 @@ authRef.onAuth(function( authData ) {
       toPlanet: null
     },
     authData: authData,
-    timestamp: new Date().getTime(),
-    players: null
+    timestamp: new Date().getTime()
   });
-  // Save the user id
-  players.push(authData.uid);
   // Update the current user.
   currentUser = authData.uid;
   console.log('user id: ', currentUser);
@@ -186,58 +193,55 @@ authRef.onAuth(function( authData ) {
   this.playersRef.child( authData.uid ).onDisconnect().remove();
 });
 
+// Get the players
+playersRef.on('value', function(snapshot) {
+  var data = snapshot.val() || {};
+  Object.keys(data).forEach(function(playerID) {
+    if ( data[playerID].gameid == gameID ) {
+      players[playerID] = data[playerID];
+    }
+  });
+  // console.log('players', players);
+});
+
+playersRef.on('child_removed', function(snapshot) {
+  // updates the players object
+  delete players[snapshot.key()];
+});
+
+
 // Check if planets already exist for this game
 planetsRef.once('value', function(snapshot) {
-  var data = snapshot.val() || {};
+  var data = snapshot.val() || {},
+      x, y;
+  // Loop through the planets and check if any of them have a game ID that matches
+  // the current game
   Object.keys(data).forEach(function(planetID) {
+    // If it does, push it to the planets array.
     if ( data[planetID].gameid == gameID ) {
       planets.push( new planetModel(data[planetID].position.x, data[planetID].position.y) );
     }
   });
   
+  // If we didn't end up pushing any planets, make new ones for this game.
   if ( !planets.length ) {
-    // Create some new planets
     newGame = true;
     for (var i = getRandomInt(5, 10); i > 0; i--) {
-      planets.push( new planetModel(getRandomInt(-500, 500), getRandomInt(-500, 500)) );
+      do {
+        x = getRandomInt(-500, 500);
+        y = getRandomInt(-500, 500);
+        // console.log(x, y)
+      } while (planetIsTooClose(x, y))
+      planets.push( new planetModel(x, y) );
     }
   }
   console.log(planets);
-  
-  console.log('playersRef',playersRef);
   
   // After the planets are loaded kick everything off.
   init();
   animate();
   
 });
-
-// Check if players already exist for this game
-playersRef.once('value', function(snapshot) {
-  var data = snapshot.val() || {};
-  Object.keys(data).forEach(function(planetID) {
-    if ( data[planetID].gameid == gameID ) {
-      planets.push( new planetModel(data[planetID].position.x, data[planetID].position.y) );
-    }
-  });
-  
-  if ( !planets.length ) {
-    // Create some new planets
-    newGame = true;
-    for (var i = getRandomInt(5, 10); i > 0; i--) {
-      planets.push( new planetModel(getRandomInt(-500, 500), getRandomInt(-500, 500)) );
-    }
-  }
-  console.log(planets);
-  
-  console.log('playersRef',playersRef);
-  
-  // After the planets are loaded kick everything off.
-  init();
-  animate();
-  
-});
-
 
 
 ////////////////
@@ -246,6 +250,15 @@ playersRef.once('value', function(snapshot) {
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
+}
+
+function planetIsTooClose(x, y) {
+  return Object.keys(planets).some(function(i) {
+    var distance = Math.sqrt(Math.pow(planets[i].mesh.position.x - x, 2)+ Math.pow(planets[i].mesh.position.y - y, 2));
+    // console.log(xIsTooClose);
+    // console.log(yIsTooClose)
+    return distance < 200;
+  });
 }
 
 
