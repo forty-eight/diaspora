@@ -1,6 +1,15 @@
 // (function() {
 
 //////////////////////////////
+// FIREBASE //
+//////////////////////////////
+
+// Create some Firebase references.
+var authRef = new Firebase("https://ss16-diaspora.firebaseio.com/");
+var playersRef = new Firebase("https://ss16-diaspora.firebaseio.com/players");
+var planetsRef = new Firebase("https://ss16-diaspora.firebaseio.com/planets");
+
+//////////////////////////////
 // THREEJS EXTENSIONS SETUP //
 //////////////////////////////
 
@@ -21,26 +30,63 @@ var clicks = [];
 // LOBBY STUFF //
 /////////////////
 
-// Grab the game ID or randomly generate one.
-var gameID = window.location.hash.substr(1).length
-           ? window.location.hash.substr(1)
-           : Math.random().toString(36).substring(2);
+var currentGame,
+    gameID,
+    gamesRef = new Firebase("https://ss16-diaspora.firebaseio.com/game"),
+    gameRef;
+
+// If there's a hash in the URL, we assume it's a game id.
+if ( window.location.hash.substr(1).length ) {
+  gameID = window.location.hash.substr(1);
+  gameRef = new Firebase("https://ss16-diaspora.firebaseio.com/game/" + gameID);
+  gameRef.once('value', function(snapshot) {
+    currentGame = snapshot.val();
+    var promises = Object.keys(currentGame.planets).map(function(planetID) {
+      return planetsRef.child(currentGame.planets[planetID]).once('value', function(snapshot) {
+        var planet = snapshot.val();
+        console.log(planet)
+        planets.push( new planetModel(planet.position.x, planet.position.y) );
+      });
+    });
+    Promise.all( promises ).then( go );
+  });
+} else {
+  // Store the game.
+  gamesRef.push({
+    ready: false,
+    over: false,
+    timestamp: new Date().getTime()
+  }).then(function(snapshot) {
+    gameID = snapshot.key();
+    gameRef = new Firebase("https://ss16-diaspora.firebaseio.com/game/" + gameID);
+    newGame = true;
+    for (var i = getRandomInt(5, 10); i > 0; i--) {
+      do {
+        x = getRandomInt(-500, 500);
+        y = getRandomInt(-500, 500);
+        // console.log(x, y)
+      } while (planetIsTooClose(x, y))
+      planets.push( new planetModel(x, y) );
+    }
+    window.location.hash = gameID;
+    go();
+  });
+}
+
+function go() {
+  init();
+  animate();
+}
            
 // Firebase will define this after authentication.
 var players = {};
 var currentUser;
 
-// Update the URL if we generated a fresh game ID.
-if ( !window.location.hash.substr(1).length ) {
-    window.location.hash = gameID;
-}
-
-
 ////////////
 // MODELS //
 ////////////
 
-var planetModel = function( x, y, units, spinning ) {
+function planetModel( x, y, units, spinning ) {
   // var geometry = new THREE.BoxGeometry( 100, 100, 100 );
   // var material = new THREE.MeshBasicMaterial( { color: 'white', wireframe: true } );
   // this.mesh = new THREE.Mesh( geometry, material );
@@ -98,7 +144,7 @@ var cometOptions = {
 	sizeRandomness: .4
 };
 
-var cometModel = function( startX, startY, endX, endY, size ) {
+function cometModel( startX, startY, endX, endY, size ) {
     this.startX = startX;
     this.startY = startY;
     this.endX = endX;
@@ -140,12 +186,6 @@ var cometModel = function( startX, startY, endX, endY, size ) {
 // AUTH STUFF //
 ////////////////
 
-// Create some Firebase references.
-var authRef = new Firebase("https://ss16-diaspora.firebaseio.com/");
-var playersRef = new Firebase("https://ss16-diaspora.firebaseio.com/players");
-var planetsRef = new Firebase("https://ss16-diaspora.firebaseio.com/planets");
-var gameRef = new Firebase("https://ss16-diaspora.firebaseio.com/game/" + gameID);
-
 // Authenticate the user anonymously.
 if ( !authRef.getAuth() ) {
   authRef.authAnonymously( function( error, authData ) {
@@ -154,21 +194,6 @@ if ( !authRef.getAuth() ) {
     }
   }, {remember: 'sessionOnly'});
 }
-
-// Store the game.
-gameRef.set({
-  ready: false,
-  over: false,
-  timestamp: new Date().getTime()
-  // planets: foo()
-});
-
-// function foo() {
-//   var planets = {};
-//   // loop through and create planets
-//   planets[id] = planet;
-//   return [1,2,3]
-// }
 
 // After authentication completes.
 authRef.onAuth(function( authData ) {
@@ -210,40 +235,6 @@ playersRef.on('child_removed', function(snapshot) {
 });
 
 
-// Check if planets already exist for this game
-planetsRef.once('value', function(snapshot) {
-  var data = snapshot.val() || {},
-      x, y;
-  // Loop through the planets and check if any of them have a game ID that matches
-  // the current game
-  Object.keys(data).forEach(function(planetID) {
-    // If it does, push it to the planets array.
-    if ( data[planetID].gameid == gameID ) {
-      planets.push( new planetModel(data[planetID].position.x, data[planetID].position.y) );
-    }
-  });
-  
-  // If we didn't end up pushing any planets, make new ones for this game.
-  if ( !planets.length ) {
-    newGame = true;
-    for (var i = getRandomInt(5, 10); i > 0; i--) {
-      do {
-        x = getRandomInt(-500, 500);
-        y = getRandomInt(-500, 500);
-        // console.log(x, y)
-      } while (planetIsTooClose(x, y))
-      planets.push( new planetModel(x, y) );
-    }
-  }
-  console.log(planets);
-  
-  // After the planets are loaded kick everything off.
-  init();
-  animate();
-  
-});
-
-
 ////////////////
 // UTIL STUFF //
 ////////////////
@@ -255,8 +246,6 @@ function getRandomInt(min, max) {
 function planetIsTooClose(x, y) {
   return Object.keys(planets).some(function(i) {
     var distance = Math.sqrt(Math.pow(planets[i].mesh.position.x - x, 2)+ Math.pow(planets[i].mesh.position.y - y, 2));
-    // console.log(xIsTooClose);
-    // console.log(yIsTooClose)
     return distance < 200;
   });
 }
