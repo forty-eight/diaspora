@@ -67,8 +67,7 @@ authRef.onAuth(function( authData ) {
       var planetPromises = Object.keys(currentGame.planets).map(function(planetID) {
         return planetsRef.child(currentGame.planets[planetID]).once('value', function(snapshot) {
           var planet = snapshot.val();
-          console.log(planet)
-          planets.push( new Planet(planet.position.x, planet.position.y) );
+          planets.push( new Planet(snapshot.name(), planet.position.x, planet.position.y) );
         });
       });
       var playerPromises = [];
@@ -104,7 +103,7 @@ authRef.onAuth(function( authData ) {
           y = getRandomInt(-500, 500);
           // console.log(x, y)
         } while (planetIsTooClose(x, y))
-        planets.push( new Planet(x, y) );
+        planets.push( new Planet(null, x, y) );
       }
       window.location.hash = gameID;
       setupCurrentPlayer(authData, 0);
@@ -146,45 +145,67 @@ function go() {
 // MODELS //
 ////////////
 
-function Planet( x, y, units, spinning, owner ) {
+function Planet( fbID, x, y, units, spinning, owner ) {
 
   var geometry = new THREE.SphereGeometry( 50, 16, 16 );
   var material = new THREE.MeshLambertMaterial( {color: 0xffff00} );
+  
+  this.id = fbID || null;
+  this.fbRef = this.id ? new Firebase("https://ss16-diaspora.firebaseio.com/planets/" + this.id) : null;
+  
   this.mesh = new THREE.Mesh( geometry, material );
-
   this.mesh.position.set( x || 0, y || 0, 10 );
   this.mesh.id = ++id;
-  // this.mesh.owner = 'player1';
-  this.mesh.units = units || 10;
-  this.mesh.spinning = spinning || false;
 
+  // @TODO need to set this as the player's ID
+  this.owner = null;
+  this.units = units || 10;
+  this.spinning = spinning || false;
+  
+  // Provide a reference to itself
+  this.mesh.planet = this;
+  
   this.getUnits = function() {
     return this.units;
   };
-  this.setUnits = function() {
-
+  
+  this.setUnits = function( numUnits ) {
+    this.units = numUnits;
   };
-
+  
+  this.update = function() {
+    this.fbRef.update({
+      units: this.units,
+      owner: this.owner
+    });
+  }
+  
   // We only want to push the planets to Firebase if this is a new game. Otherwise
   // it means there's another player that already has planets so we want to render
   // those in the exact same locations.
-  if ( !newGame ) return;
-  var newPlanet = planetsRef.push({
-    gameid: gameID,
-    units: this.mesh.units,
-    owner: this.mesh.owner || null,
-    position: {
-      x: x || 0,
-      y: y || 0
-    }
-  });
-  gameRef.child('planets').push(newPlanet.key());
-
+  if ( newGame ) {
+    var newPlanetKey = planetsRef.push({
+      gameid: gameID,
+      units: this.units,
+      owner: this.owner || null,
+      position: {
+        x: x || 0,
+        y: y || 0
+      }
+    }).key();
+    gameRef.child('planets').push(newPlanetKey);
+    this.id = newPlanetKey;
+    this.fbRef = new Firebase("https://ss16-diaspora.firebaseio.com/planets/" + this.id);
+  }
+  
+  this.fbRef.on('value', function(dataSnapshot) {
+    var data = dataSnapshot.val() || {};
+    console.log(data)
+    if ( data.units ) this.setUnits( data.units );
+    if ( data.owner ) this.owner = data.owner;
+  }.bind(this));
+  
 }
-
-
-
-
 
 function Comet( startX, startY, endX, endY, size ) {
   this.startX = startX;
@@ -238,9 +259,9 @@ Comet.prototype.render = function() {
   }
 
   // debugging stuff
-  if ((Math.round(tick * 100) / 100) % 1 === 0) {
-      console.log(this)
-  }
+  // if ((Math.round(tick * 100) / 100) % 1 === 0) {
+  //     console.log(this)
+  // }
 }
 
 
@@ -271,11 +292,10 @@ function getRandomInt(min, max) {
 
 function planetIsTooClose(x, y) {
   return Object.keys(planets).some(function(i) {
-    var distance = Math.sqrt(Math.pow(planets[i].mesh.position.x - x, 2)+ Math.pow(planets[i].mesh.position.y - y, 2));
+    var distance = Math.sqrt(Math.pow(planets[i].mesh.position.x - x, 2) + Math.pow(planets[i].mesh.position.y - y, 2));
     return distance < 200;
   });
 }
-
 
 ///////////////////
 // THREEJS STUFF //
@@ -299,12 +319,12 @@ function init() {
   scene.add(pointLight2);
 
   camera.position.z = 1000;
-  console.log('planets',planets);
+  // console.log('planets',planets);
   planets.forEach(function( planet ) {
     scene.add( planet.mesh );
   });
 
-  renderer = new THREE.WebGLRenderer({antialias: true});
+  renderer = new THREE.WebGLRenderer();
   renderer.setSize( window.innerWidth, window.innerHeight );
 
   document.body.appendChild( renderer.domElement );
@@ -345,23 +365,52 @@ function onDocumentMouseDown( event ) {
     // If there are two planet IDs in the clicks array, send a comet from the first
     // planet to the second. Otherwise, return and do nothing;
     if (clicks.length < 2) return;
-
-    var startX, startY, endX, endY;
+    
+    var startPlanet, endPlanet;
 
     Object.keys(planets).forEach(function(i) {
       if ( planets[i].mesh.id == clicks[0] ) {
-        startX = planets[i].mesh.position.x;
-        startY = planets[i].mesh.position.y;
+        startPlanet = planets[i];
       }
       if ( planets[i].mesh.id == clicks[1] ) {
-        endX = planets[i].mesh.position.x;
-        endY = planets[i].mesh.position.y;
+        endPlanet = planets[i];
       }
       setTimeout(function() {
-        planets[i].mesh.spinning = false;
+        planets[i].spinning = false;
       }, 500);
     });
-    comets.push( new Comet(startX, startY, endX, endY, 60) );
+
+    
+    var armySize = Math.floor( startPlanet.getUnits() / 2 );
+    startPlanet.setUnits( startPlanet.getUnits() - armySize );
+
+    // If it's a neutral planet
+    if ( endPlanet.owner == null ) {
+      endPlanet.setUnits( endPlanet.getUnits() + armySize );
+      endPlanet.owner = currentUser;
+    // If an enemy owns it
+    } else if ( endPlanet.owner != currentUser ) {
+      var remaining = endPlanet.getUnits() - armySize;
+      if ( remaining < 0 ) {
+        endPlanet.setUnits( Math.abs(remaining) );
+        endPlanet.owner = currentUser;
+      } else if ( remaining == 0 ) {
+        endPlanet.setUnits( 0 );
+        endPlanet.owner = null;
+      } else {
+        endPlanet.setUnits( remaining );
+      }
+    // If you own it
+    } else {
+      endPlanet.setUnits( endPlanet.getUnits() + armySize );
+    }
+    
+    startPlanet.update();
+    endPlanet.update();
+    
+    comets.push( new Comet(startPlanet.mesh.position.x, startPlanet.mesh.position.y, endPlanet.mesh.position.x, endPlanet.mesh.position.y, 60) );
+    
+    
 
     // Clear the clicks if we fired a comet.
     clicks = [];
@@ -376,7 +425,7 @@ function animate() {
   controls.update();
 
   planets.forEach(function( planet ) {
-    if (planet.mesh.spinning) {
+    if (planet.spinning) {
       planet.mesh.rotation.x += 0.05;
       planet.mesh.rotation.y += 0.05;
       planet.mesh.material.color.set('red');
