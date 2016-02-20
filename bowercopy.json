@@ -5,20 +5,7 @@
             "clean": true
         },
         "files": {
-            "three.min.js": "threejs/build/three.min.js"
-        }
-    },
-    "threexPlanets": {
-        "options": {
-            "destPrefix": "app/js/vendor/threex-planets",
-            "clean": true
-        },
-        "files": {
-            "images": "threex.planets/images",
-            "package.require.js": "threex.planets/package.require.js",
-            "threex.atmospheredatgui.js": "threex.planets/threex.atmospheredatgui.js",
-            "threex.atmospherematerial.js": "threex.planets/threex.atmospherematerial.js",
-            "threex.planets.js": "threex.planets/threex.planets.js"
+            "TweenMax.min.js": "gsap/src/minified/TweenMax.min.js"
         }
     }
 }
