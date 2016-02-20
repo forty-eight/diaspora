@@ -13,8 +13,9 @@ THREEx.Planets.baseURL	= 'js/vendor/threex-planets/';
 var newGame = false;
 var scene, camera, renderer, mouse, controls;
 var clock = new THREE.Clock(true);
-var particleSystem, particleOptions, cometOptions, tick = 0, planets = [], comets = [];
+var pointLight1, pointLight2, particleSystem, particleOptions, cometOptions, tick = 0, planets = [], comets = [];
 var id = 0;
+var clicks = [];
 
 /////////////////
 // LOBBY STUFF //
@@ -26,6 +27,7 @@ var gameID = window.location.hash.substr(1).length
            : Math.random().toString(36).substring(2);
            
 // Firebase will define this after authentication.
+var players = [];
 var currentUser;
 
 // Update the URL if we generated a fresh game ID.
@@ -43,13 +45,13 @@ var planetModel = function( x, y, units, spinning ) {
   // var material = new THREE.MeshBasicMaterial( { color: 'white', wireframe: true } );
   // this.mesh = new THREE.Mesh( geometry, material );
 
-  var geometry = new THREE.SphereGeometry( 100, 100, 100 );
-  var material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
+  var geometry = new THREE.SphereGeometry( 100, 16, 16 );
+  var material = new THREE.MeshLambertMaterial( {color: 0xffff00} );
   this.mesh = new THREE.Mesh( geometry, material );
 
   this.mesh.position.set( x || 0, y || 0, 10 );
   this.mesh.id = ++id;
-  this.mesh.owner = 'player1';
+  // this.mesh.owner = 'player1';
   this.mesh.units = units || 10;
   this.mesh.spinning = spinning || false;
   
@@ -59,7 +61,7 @@ var planetModel = function( x, y, units, spinning ) {
   planetsRef.push({
     gameid: gameID,
     units: this.mesh.units,
-    owner: this.mesh.owner,
+    owner: this.mesh.owner || '',
     position: {
       x: x || 0,
       y: y || 0
@@ -87,7 +89,7 @@ var cometOptions = {
 	positionRandomness: .3,
 	velocity: new THREE.Vector3(),
 	velocityRandomness: .5,
-	color: '0xffffff',
+	color: 'red',
 	colorRandomness: .2,
 	turbulence: .5,
 	lifetime: 2,
@@ -99,14 +101,14 @@ var cometModel = function( startX, startY, endX, endY, size ) {
     this.startY = startY;
     this.endX = endX;
     this.endY = endY;
-    this.x = startX;
-    this.y= startY;
     this.size = size || getRandomInt(5, 20);
     // @TODO this is incredibly rough and doesn't work very well
     // We need to assign start and end coordinates and move it along that line
     // The start and end coordinates need to come from the two planets selected
     // by the user. The first planet they select is the start, the second is the
     // end. We currently don't even store their clicking anywhere.
+    
+    // render() is called in the animate loop. it's called every frame (60 times/sec)
     this.render = function() {
       var delta = clock.getDelta() * particleOptions.timeScale;
 	    
@@ -115,8 +117,8 @@ var cometModel = function( startX, startY, endX, endY, size ) {
         
       cometOptions.size = this.size;
       
-      cometOptions.position.x = -500 + tick * 100;
-  		cometOptions.position.y = -500 + tick * 100;
+      cometOptions.position.x = this.startX + tick * 100;
+  		cometOptions.position.y = this.startY + tick * 100;
 
   		if (delta > 0) {
     		for (var x = 0; x < 15000 * delta; x++) {
@@ -174,6 +176,8 @@ authRef.onAuth(function( authData ) {
     timestamp: new Date().getTime(),
     players: null
   });
+  // Save the user id
+  players.push(authData.uid);
   // Update the current user.
   currentUser = authData.uid;
   console.log('user id: ', currentUser);
@@ -184,7 +188,6 @@ authRef.onAuth(function( authData ) {
 
 // Check if planets already exist for this game
 planetsRef.once('value', function(snapshot) {
-  console.log(planets)
   var data = snapshot.val() || {};
   Object.keys(data).forEach(function(planetID) {
     if ( data[planetID].gameid == gameID ) {
@@ -198,14 +201,10 @@ planetsRef.once('value', function(snapshot) {
     for (var i = getRandomInt(5, 10); i > 0; i--) {
       planets.push( new planetModel(getRandomInt(-500, 500), getRandomInt(-500, 500)) );
     }
-  // } else {
-  //   // If they do exist, we want to grab them and render them. They need to be in
-  //   // the same locations for both players.
-  //   for (var i = getRandomInt(5, 10); i > 0; i--) {
-  //     planets.push( new planetModel(getRandomInt(-500, 500), getRandomInt(-500, 500)) );
-  //   }
   }
-  console.log(planets)
+  console.log(planets);
+  
+  console.log('playersRef',playersRef);
   
   // After the planets are loaded kick everything off.
   init();
@@ -213,6 +212,31 @@ planetsRef.once('value', function(snapshot) {
   
 });
 
+// Check if players already exist for this game
+playersRef.once('value', function(snapshot) {
+  var data = snapshot.val() || {};
+  Object.keys(data).forEach(function(planetID) {
+    if ( data[planetID].gameid == gameID ) {
+      planets.push( new planetModel(data[planetID].position.x, data[planetID].position.y) );
+    }
+  });
+  
+  if ( !planets.length ) {
+    // Create some new planets
+    newGame = true;
+    for (var i = getRandomInt(5, 10); i > 0; i--) {
+      planets.push( new planetModel(getRandomInt(-500, 500), getRandomInt(-500, 500)) );
+    }
+  }
+  console.log(planets);
+  
+  console.log('playersRef',playersRef);
+  
+  // After the planets are loaded kick everything off.
+  init();
+  animate();
+  
+});
 
 
 
@@ -240,7 +264,19 @@ function init() {
 	});
 	
 	scene.add( particleSystem );
-	
+
+  pointLight1 = new THREE.PointLight(0xFFFFFF);
+  pointLight1.position.x = 0;
+  pointLight1.position.y = 800;
+  pointLight1.position.z = 800;
+  pointLight2 = new THREE.PointLight(0xFFFFFF);
+  pointLight2.position.x = 0;
+  pointLight2.position.y = -800;
+  pointLight2.position.z = -800;
+
+  scene.add(pointLight1);
+  scene.add(pointLight2);
+
   camera.position.z = 1000;
   console.log('planets',planets);
   planets.forEach(function( planet ) {
@@ -266,9 +302,10 @@ function onDocumentMouseDown( event ) {
   event.preventDefault();
   
   var vector = new THREE.Vector3( 
-      ( event.clientX / window.innerWidth ) * 2 - 1, 
-      - ( event.clientY / window.innerHeight ) * 2 + 1, 
-      0.5 );
+      (event.clientX / window.innerWidth) * 2 - 1, 
+      -(event.clientY / window.innerHeight) * 2 + 1, 
+      0.5
+    );
       
   var meshes = planets.map(function(planet) {
     return planet.mesh;
@@ -276,11 +313,41 @@ function onDocumentMouseDown( event ) {
   
   projector.unprojectVector( vector, camera );
   var ray = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
-  var intersects = ray.intersectObjects( meshes );    
+  var intersects = ray.intersectObjects( meshes );
+  
+  // If they clicked on a planet
   if ( intersects.length > 0 ) {
-    intersects[0].object.material.color.set('red');
-    intersects[0].object.spinning = true;
-    comets.push( new cometModel(0, 0, intersects[0].object.position.x, intersects[0].object.position.y, 15) );
+    var clickLocation = clicks.indexOf( intersects[0].object.id );
+    if ( clickLocation === -1 ) {
+      clicks.push( intersects[0].object.id );
+      intersects[0].object.spinning = !intersects[0].object.spinning;
+    } else {
+      clicks.splice(clickLocation, 1);
+    }
+    
+    // If there are two planet IDs in the clicks array, send a comet from the first
+    // planet to the second. Otherwise, return and do nothing;
+    if (clicks.length < 2) return;
+    
+    var startX, startY, endX, endY;
+
+    Object.keys(planets).forEach(function(i) {
+      if ( planets[i].mesh.id == clicks[0] ) {
+        startX = planets[i].mesh.position.x;
+        startY = planets[i].mesh.position.y;
+      }
+      if ( planets[i].mesh.id == clicks[1] ) {
+        endX = planets[i].mesh.position.x;
+        endY = planets[i].mesh.position.y;
+      }
+      setTimeout(function() {
+        planets[i].mesh.spinning = false;
+      }, 1000);
+    });
+    comets.push( new cometModel(startX, startY, endX, endY, 15) );
+    
+    // Clear the clicks if we fired a comet.
+    clicks = [];
   }
                     
 }
@@ -292,9 +359,13 @@ function animate() {
   controls.update();
   
   planets.forEach(function( planet ) {
-    if (!planet.mesh.spinning) return;
-    planet.mesh.rotation.x += 0.05;
-    planet.mesh.rotation.y += 0.05;
+    if (planet.mesh.spinning) {
+      planet.mesh.rotation.x += 0.05;
+      planet.mesh.rotation.y += 0.05;
+      planet.mesh.material.color.set('red');
+    } else {
+      planet.mesh.material.color.set('yellow');
+    }
   });
   
   comets.forEach(function( comet ) {
