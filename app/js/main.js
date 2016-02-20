@@ -157,14 +157,14 @@ function Planet( x, y, units, spinning, owner ) {
   // this.mesh.owner = 'player1';
   this.mesh.units = units || 10;
   this.mesh.spinning = spinning || false;
-  
+
   this.getUnits = function() {
     return this.units;
   };
   this.setUnits = function() {
-    
+
   };
-  
+
   // We only want to push the planets to Firebase if this is a new game. Otherwise
   // it means there's another player that already has planets so we want to render
   // those in the exact same locations.
@@ -179,7 +179,7 @@ function Planet( x, y, units, spinning, owner ) {
     }
   });
   gameRef.child('planets').push(newPlanet.key());
-  
+
 }
 
 
@@ -191,14 +191,14 @@ function Comet( startX, startY, endX, endY, size ) {
   this.startY = startY;
   this.endX = endX;
   this.endY = endY;
-  
+
   this.particleOptions = {
     spawnRate: 1500,
     horizontalSpeed: 1.5,
     verticalSpeed: 1.33,
     timeScale: 1
   };
-  
+
   this.cometOptions = {
     position: new THREE.Vector3(),
     positionRandomness: .3,
@@ -211,32 +211,32 @@ function Comet( startX, startY, endX, endY, size ) {
     sizeRandomness: .4,
     size: size || getRandomInt(10, 20)
   };
-  
+
   this.cometOptions.position.x = this.startX;
   this.cometOptions.position.y = this.startY;
-  
+
   this.particleSystem = new THREE.GPUParticleSystem({
 		maxParticles: 250000
 	});
-	
+
 	scene.add( this.particleSystem );
 }
 
 Comet.prototype.render = function() {
   var delta = clock.getDelta() * this.particleOptions.timeScale;
-  
+
   tick += delta;
   if (tick < 0) tick = 0;
-  
+
   this.cometOptions.position.x = this.cometOptions.position.x + 1;
   this.cometOptions.position.y = this.cometOptions.position.y + 1;
-    
+
   if (delta > 0) {
     for (var x = 0; x < 15000 * delta; x++) {
       this.particleSystem.spawnParticle(this.cometOptions);
     }
   }
-  
+
   // debugging stuff
   if ((Math.round(tick * 100) / 100) % 1 === 0) {
       console.log(this)
@@ -282,8 +282,8 @@ function planetIsTooClose(x, y) {
 ///////////////////
 
 function init() {
-    
-  projector = new THREE.Projector();
+
+  // projector = new THREE.Projector();
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
 
@@ -310,7 +310,7 @@ function init() {
 
   document.body.appendChild( renderer.domElement );
   document.addEventListener( 'mousedown', onDocumentMouseDown, false );
-  
+
   controls = new THREE.TrackballControls(camera, renderer.domElement);
 	controls.rotateSpeed = 5.0;
 	controls.zoomSpeed = 2.2;
@@ -320,23 +320,19 @@ function init() {
 }
 
 function onDocumentMouseDown( event ) {
-    
+
   event.preventDefault();
-  
-  var vector = new THREE.Vector3( 
-      (event.clientX / window.innerWidth) * 2 - 1, 
-      -(event.clientY / window.innerHeight) * 2 + 1, 
-      0.5
-    );
-      
+
   var meshes = planets.map(function(planet) {
     return planet.mesh;
   });
-  
-  projector.unprojectVector( vector, camera );
-  var ray = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
-  var intersects = ray.intersectObjects( meshes );
-  
+  var raycaster = new THREE.Raycaster();
+  var mouse = new THREE.Vector2();
+  mouse.x = ( event.clientX / renderer.domElement.width ) * 2 - 1;
+  mouse.y = - ( event.clientY / renderer.domElement.height ) * 2 + 1;
+  raycaster.setFromCamera( mouse, camera );
+  var intersects = raycaster.intersectObjects( meshes );
+
   // If they clicked on a planet
   if ( intersects.length > 0 ) {
     var clickLocation = clicks.indexOf( intersects[0].object.id );
@@ -346,11 +342,11 @@ function onDocumentMouseDown( event ) {
     } else {
       clicks.splice(clickLocation, 1);
     }
-    
+
     // If there are two planet IDs in the clicks array, send a comet from the first
     // planet to the second. Otherwise, return and do nothing;
     if (clicks.length < 2) return;
-    
+
     var startX, startY, endX, endY;
 
     Object.keys(planets).forEach(function(i) {
@@ -367,19 +363,19 @@ function onDocumentMouseDown( event ) {
       }, 500);
     });
     comets.push( new Comet(startX, startY, endX, endY, 60) );
-    
+
     // Clear the clicks if we fired a comet.
     clicks = [];
   }
-                    
+
 }
 
 function animate() {
 
   requestAnimationFrame( animate );
-  
+
   controls.update();
-  
+
   planets.forEach(function( planet ) {
     if (planet.mesh.spinning) {
       planet.mesh.rotation.x += 0.05;
@@ -389,14 +385,12 @@ function animate() {
       planet.mesh.material.color.set('yellow');
     }
   });
-  
+
   comets.forEach(function( comet ) {
     comet.render();
     comet.particleSystem.update(tick);
   });
-			
+
   renderer.render( scene, camera );
 
 }
-
-// })();
