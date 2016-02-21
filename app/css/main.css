@@ -1,13 +1,122 @@
 body {
-    background: #fafafa;
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-    color: #333;
+    margin: 0;
+    padding: 0;
+    background: #120C3D;
+    font-family: 'Raleway', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: rgba(255,255,255,.8);
     overflow: hidden;
 }
 
 .browsehappy {
     margin: 0.2em 0;
-    background: #ccc;
-    color: #000;
+    background: rgba(255,255,255,.8);
+    color: #120C3D;
     padding: 0.2em 0;
+}
+
+.masthead {
+    display: block;
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    margin: 0;
+    padding: 0.67em;
+    font-size: 20px;
+    z-index: 3;
+    transform: translateY(0);
+    transition: .2s transform ease-out;
+}
+
+.s-show-modal .masthead {
+    transform: translateY(-100%);
+}
+
+.logo {
+    font-family: 'Merienda One', "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-weight: normal;
+    letter-spacing: .2em;
+    text-align: center;
+    background: -webkit-linear-gradient(#eee, #3C4968);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 2;
+    transform: translateY(100%);
+    transition: .4s transform ease-in;
+}
+
+.s-show-modal .modal {
+    transform: translateY(0);
+}
+
+.modal_shape {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 420px;
+    height: 420px;
+    background: linear-gradient(to bottom, #12285b 0%,#513766 100%);
+    transform: translate(-50%, -50%) rotate(45deg);
+    box-shadow: 0 0 12px black;
+}
+
+.modal_shroud {
+    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: rgba(6,1,56,0.8);
+}
+
+.s-show-modal .modal_shroud {
+    display: block;
+}
+
+.modal_content {
+    position: fixed;
+    top: 50%;
+    right: 0;
+    left: 0;
+    text-align: center;
+}
+
+.msg_logo {
+    margin: -120px 0 .85em;
+    font-size: 24px;
+}
+
+.msg_share {
+    margin: 0 0 1em;
+    font-size: 17px;
+    color: rgba(255,255,255,.8);
+}
+
+.msg_link,
+.msg_link:active,
+.msg_link:visited {
+    display: inline-block;
+    border-bottom: 1px dotted rgba(255,255,255,0.4);
+    color: rgba(255,255,255,.8);
+    font-size: 18px;
+    text-decoration: none;
+}
+
+.msg_no-friends {
+    margin: .8em 0 0;
+    font-size: 11px;
+}
+
+.s-show-modal .canvas {
+    -webkit-filter: blur(6px);
+    transition: .2s -webkit-filter ease-out;
 }

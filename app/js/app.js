@@ -194,7 +194,7 @@ attachClickListener(canvas, planetSelector);
 
 function draw() {
   // Clear the canvas
-  ctx.fillStyle = "#000000";
+  ctx.fillStyle = "#120C3D";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   planets.forEach(function(planet) {
