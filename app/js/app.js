@@ -172,6 +172,7 @@ var planetSelector = function(){
   return function(planet){
     if(startPlanet){
       adjustPlanetUnits(startPlanet, planet);
+      fireComet(startPlanet, planet);
       startPlanet = null;
     }else{
       startPlanet = planet;
@@ -196,6 +197,10 @@ function draw() {
   planets.forEach(function(planet) {
     planet.draw();
   });
+  
+  comets.forEach(function(comet){
+    comet.draw();
+  })
 }
 
 // Call draw() using TweenLite
@@ -312,6 +317,19 @@ function adjustPlanetUnits(startPlanet, endPlanet){
     startPlanet.update();
     endPlanet.update();
 
+}
+
+
+function fireComet(startPlanet, endPlanet){
+  var comet = new Comet(startPlanet, endPlanet);
+  comets.push(comet);
+  
+  comet.shoot(function(){
+    for(var i=0; i<comets.length; i++){
+      if(comets[i] === comet) return comets.splice(i, 1);
+    }
+  })
+  
 }
 
 
