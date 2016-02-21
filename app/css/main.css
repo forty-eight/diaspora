@@ -11,3 +11,14 @@ body {
     color: #000;
     padding: 0.2em 0;
 }
+
+#space{
+  position: absolute;
+	top: 0;
+	left: 0;
+  background: #000000;
+}
+
+#canvas{
+    position:absolute;
+}

@@ -31,6 +31,7 @@ var currentGame,
     gameRef;
 
 
+starfield();
 ////////////////
 // AUTH STUFF //
 ////////////////
@@ -216,7 +217,7 @@ attachClickListener(canvas, planetSelector);
 
 function draw() {
   // Clear the canvas
-  ctx.fillStyle = "#000000";
+  ctx.fillStyle = 'rgba(0,0,0,0)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   planets.forEach(function(planet) {
