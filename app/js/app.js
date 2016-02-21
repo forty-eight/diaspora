@@ -328,6 +328,11 @@ function Planet( fbID, x, y, units, selected, owner ) {
     );
     ctx.fill();
     ctx.closePath();
+    // Label stuff
+    ctx.fillStyle = "black";
+    ctx.font = "bold 22px sans-serif";
+    ctx.textAlign = 'center';
+    ctx.fillText(this.units, this.mesh.x, this.mesh.y + 8);
   };
 
   this.targetTween = function() {
