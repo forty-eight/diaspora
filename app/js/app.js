@@ -22,7 +22,6 @@ var currentUser;
 var gameIsReady = false;
 
 var modal = document.getElementById('modal');
-var shareLink = document.getElementById('share-link');
 
 /////////////////
 // LOBBY STUFF //
@@ -50,8 +49,10 @@ if ( !authRef.getAuth() ) {
 
 function setShareLink() {
   var link = window.location;
-  shareLink.href = link;
-  shareLink.textContent = link;
+  var shareLinkBtnText = document.getElementById('share-link-btn-txt');
+  var shareLinkHref = document.getElementById('share-link-href');
+  shareLinkBtnText.textContent = link;
+  shareLinkHref.setAttribute('value', link);
   return link;
 }
 
