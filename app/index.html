@@ -13,15 +13,30 @@
         <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/3.0.3/normalize.min.css">
         <link rel="stylesheet" href="css/main.css">
+        <link href='https://fonts.googleapis.com/css?family=Raleway|Merienda+One' rel='stylesheet' type='text/css'>
     </head>
-    <body id="body">
+    <body class="s-show-modal" id="body">
         <!--[if lt IE 10]>
             <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
         <![endif]-->
-        
+
         <canvas id="space"></canvas>
-        <canvas id="canvas"></canvas>
-        
+        <canvas id="canvas" class="canvas"></canvas>
+
+        <h1 class="masthead logo">DIASPORA</h1>
+
+        <div id="modal" class="modal">
+            <div class="modal_shroud"></div>
+            <div class="modal_shape"></div>
+            <div class="modal_content">
+                <h1 class="msg_logo logo">DIASPORA</h1>
+                <p class="msg_share">To play the game share this link with a friend:</p>
+                <a id="share-link" class="msg_link" href="" target="_blank">
+                    [...]
+                </a>
+                <p class="msg_no-friends">(If you have no friends, you can paste the link into a second tab.)</p>
+            </div>
+        </div>
 
         <script src="https://cdn.firebase.com/js/client/2.4.0/firebase.js"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.5.0/lodash.min.js"></script>
