@@ -35,7 +35,8 @@ function Comet( startPlanet, endPlanet ) {
   };
 
   this.shoot = function(callback) {
-    TweenMax.to(this.mesh, .4, {
+    var duration = euclideanDistance(this.mesh.x, this.mesh.y, this.mesh.endX, this.mesh.endY) * .002;
+    TweenMax.to(this.mesh, duration, {
       x: this.mesh.endX,
       y: this.mesh.endY,
       ease: Sine.easeOut,
