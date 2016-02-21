@@ -20,6 +20,8 @@ var clicks = [];
 var players = {};
 var currentUser;
 
+var modal = document.getElementById('modal');
+var shareLink = document.getElementById('share-link');
 
 /////////////////
 // LOBBY STUFF //
@@ -42,6 +44,13 @@ if ( !authRef.getAuth() ) {
       console.log('Login Failed!', error);
     }
   }, {remember: 'sessionOnly'});
+}
+
+function setShareLink() {
+  var link = window.location;
+  shareLink.href = link;
+  shareLink.textContent = link;
+  return link;
 }
 
 // After authentication completes.
@@ -87,6 +96,7 @@ authRef.onAuth(function( authData ) {
       setupCurrentPlayer(authData, 0);
     });
   }
+  setShareLink();
 });
 
 function markAsReady() {
