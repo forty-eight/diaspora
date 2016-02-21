@@ -14,7 +14,7 @@ var planetsRef = new Firebase("https://ss16-diaspora.firebaseio.com/planets");
 
 var newGame = false;
 var scene, camera, renderer, mouse, controls;
-var pointLight1, pointLight2, particleSystem, particleOptions, cometOptions, tick = 0, planets = [], comets = [];
+var tick = 0, planets = [], comets = [];
 var id = 0;
 var clicks = [];
 var players = {};
@@ -76,7 +76,7 @@ authRef.onAuth(function( authData ) {
       gameID = snapshot.key();
       gameRef = new Firebase("https://ss16-diaspora.firebaseio.com/game/" + gameID);
       newGame = true;
-      for (var i = getRandomInt(5, 10); i > 0; i--) {
+      for (var i = getRandomInt(6, 12); i > 0; i--) {
         do {
           x = getRandomInt(0, canvas.width);
           y = getRandomInt(0, canvas.height);
@@ -115,6 +115,7 @@ function setupCurrentPlayer(authData) {
       Object.keys(data).forEach(function(i) {
         if (data[i].gameid === gameID) {
           players[i] = data[i];
+          players[i].color = getRandomColor();
           playersRef.child(i).on('child_changed', function(snapshot) {
             players[i][snapshot.key()] = snapshot.val();
             isGameReady();
@@ -133,7 +134,7 @@ function setupCurrentPlayer(authData) {
 }
 
 function isGameReady() {
-  if (players.length < 2) return false;
+  if (Object.keys(players).length < 2) return false;
   var weAreReady = Object.keys(players).every(function(p) {
     return players[p].ready;
   });
@@ -146,13 +147,30 @@ function isGameReady() {
 
 function go() {
   gameRef.child('ready').on('value', function(snapshot) {
-    if (snapshot.val()) console.log('EVERYONE HAS SAID THEY\'RE READY!!!!!');
-    // init();
-    // animate();
+    if (snapshot.val()) {
+      console.log('EVERYONE HAS SAID THEY\'RE READY!!!!!');
+      gameRef.child('comets').on('child_added', function(snapshot) {
+        var comet = snapshot.val(),
+                    startPlanet,
+                    endPlanet;
+        planets.forEach(function(planet) {
+          if (planet.id == comet.startPlanet) startPlanet = planet;
+          if (planet.id == comet.endPlanet) endPlanet = planet;
+        });
+        fireComet(startPlanet, endPlanet);
+      }.bind(this));
+      createPlayerPlanets();
+    }
   });
-
 }
 
+// Create a starting planet for every player.
+function createPlayerPlanets() {
+  Object.keys(players).forEach(function(player, i) {
+    planets[i].owner = player;
+    planets[i].update();
+  });
+}
 
 ///////////////////////
 // Set up the canvas //
@@ -171,9 +189,10 @@ function makeSelector(fn){
 
   return function(planet){
     if(startPlanet && startPlanet !== planet){
-      adjustPlanetUnits(startPlanet, planet);
-      fireComet(startPlanet, planet);
+      fn(startPlanet, planet);
+      console.log(startPlanet, planet)
       startPlanet = null;
+      
     }else{
       startPlanet = planet;
     }
@@ -181,7 +200,8 @@ function makeSelector(fn){
 
 }
 
-var 
+var planetSelector = makeSelector(adjustPlanetUnits);
+// var fbSelector = makeSelector(fireComet);
 
 
 attachClickListener(canvas, planetSelector);
@@ -204,14 +224,15 @@ function draw() {
     comet.draw();
   });
   
-  if ( ++tick % 60 === 0 ) {
-    planets.forEach(function(planet) {
-      planet.setUnits( planet.getUnits() + 1 );
-      planet.update();
-    });
-  }
-  
 }
+
+setInterval(function() {
+  planets.forEach(function(planet) {
+    if (!planet.owner) return;
+    planet.setUnits( planet.getUnits() + 1 );
+    planet.update();
+  });
+}, 1000);
 
 // Call draw() using TweenLite
 TweenLite.ticker.addEventListener("tick", draw);
@@ -252,7 +273,8 @@ function Planet( fbID, x, y, units, selected, owner ) {
       this.mesh.radiusY,
       this.mesh.rotation,
       this.mesh.startAngle,
-      this.mesh.endAngle
+      this.mesh.endAngle,
+      this.mesh.color
     );
     ctx.fill();
     // Label stuff
@@ -269,6 +291,11 @@ function Planet( fbID, x, y, units, selected, owner ) {
 
   this.setUnits = function( numUnits ) {
     this.units = numUnits;
+  };
+  
+  this.setOwner = function( owner ) {
+    this.owner = owner;
+    this.mesh.color = players[owner].color;
   };
 
   this.update = function() {
@@ -298,17 +325,21 @@ function Planet( fbID, x, y, units, selected, owner ) {
 
   this.fbRef.on('value', function(dataSnapshot) {
     var data = dataSnapshot.val() || {};
-    console.log('fbRef updated', dataSnapshot.key(), data)
+    var planetID = dataSnapshot.key();
+    //console.log('fbRef updated', planetID, data)
     if ( data.units ) this.setUnits( data.units );
-    if ( data.owner ) this.owner = data.owner;
-    
+    if ( data.owner ) this.setOwner( data.owner );
+    // for(var i=0; i<planets.length; i++){
+      // if(planets[i].id === planetID) return fbSelector(planets[i])
+    // }
   }.bind(this));
 }
 
 
-function adjustPlanetUnits(startPlanet, endPlanet){
+function adjustPlanetUnits(startPlanet, endPlanet) {
+  console.log(startPlanet, endPlanet)
   var armySize = Math.floor( startPlanet.getUnits() / 2 );
-    startPlanet.setUnits( startPlanet.getUnits() - armySize );
+      startPlanet.setUnits( startPlanet.getUnits() - armySize );
 
     // If it's a neutral planet
     if ( endPlanet.owner == null ) {
@@ -331,8 +362,13 @@ function adjustPlanetUnits(startPlanet, endPlanet){
       endPlanet.setUnits( endPlanet.getUnits() + armySize );
     }
 
-    startPlanet.update();
-    endPlanet.update();
+    gameRef.child('comets').push({
+      startPlanet: startPlanet.id,
+      endPlanet: endPlanet.id
+    }, function() {
+      startPlanet.update();
+      endPlanet.update();
+    });
 
 }
 
@@ -382,6 +418,10 @@ function euclideanDistance(x1,y1,x2,y2){
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
+}
+
+function getRandomColor(){
+  return '#' + getRandomInt(0, Math.pow(16,6)).toString(16)
 }
 
 function planetIsTooClose(x, y) {
