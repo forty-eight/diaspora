@@ -19,7 +19,7 @@ var id = 0;
 var clicks = [];
 var players = {};
 var currentUser;
-
+var gameIsReady = false;
 
 /////////////////
 // LOBBY STUFF //
@@ -148,6 +148,7 @@ function isGameReady() {
 function go() {
   gameRef.child('ready').on('value', function(snapshot) {
     if (snapshot.val()) {
+      gameIsReady = true;
       console.log('EVERYONE HAS SAID THEY\'RE READY!!!!!');
       gameRef.child('comets').on('child_added', function(snapshot) {
         var comet = snapshot.val(),
@@ -158,6 +159,8 @@ function go() {
           if (planet.id == comet.endPlanet) endPlanet = planet;
         });
         fireComet(startPlanet, endPlanet);
+        // For some reason this is here.
+        if ( gameIsReady && onlyOneOwner() ) endTheGame();
       }.bind(this));
       createPlayerPlanets();
     }
@@ -193,7 +196,7 @@ function makeSelector(fn){
       console.log(startPlanet, planet)
       startPlanet = null;
       
-    }else{
+    }else if(planet.owner === currentUser){
       startPlanet = planet;
     }
   }
@@ -329,12 +332,22 @@ function Planet( fbID, x, y, units, selected, owner ) {
     //console.log('fbRef updated', planetID, data)
     if ( data.units ) this.setUnits( data.units );
     if ( data.owner ) this.setOwner( data.owner );
-    // for(var i=0; i<planets.length; i++){
-      // if(planets[i].id === planetID) return fbSelector(planets[i])
-    // }
   }.bind(this));
 }
 
+function onlyOneOwner() {
+  owners = {};
+  planets.forEach(function(planet) {
+    if (!planet.owner) return;
+    owners[planet.owner] = 1;
+  });
+  console.log(Object.keys(owners).length === 1)
+  return Object.keys(owners).length === 1;
+}
+
+function endTheGame(){
+  console.log('You won or lost! ');
+}
 
 function adjustPlanetUnits(startPlanet, endPlanet) {
   console.log(startPlanet, endPlanet)
