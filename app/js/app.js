@@ -93,8 +93,8 @@ authRef.onAuth(function( authData ) {
       newGame = true;
       for (var i = getRandomInt(6, 12); i > 0; i--) {
         do {
-          x = getRandomInt(0, canvas.width);
-          y = getRandomInt(0, canvas.height);
+          x = getRandomInt(50, canvas.width - 150);
+          y = getRandomInt(50, canvas.height - 150);
         } while (planetIsTooClose(x, y))
         planets.push( new Planet(null, x, y) );
       }
@@ -269,11 +269,11 @@ function draw() {
 
 setInterval(function() {
   planets.forEach(function(planet) {
-    if (!planet.owner) return;
+    if (!planet.owner || planet.getUnits() > 999) return;
     planet.setUnits( planet.getUnits() + 1 );
     planet.update();
   });
-}, 1000);
+}, 2000);
 
 // Call draw() using TweenLite
 TweenLite.ticker.addEventListener("tick", draw);
@@ -339,6 +339,8 @@ function Planet( fbID, x, y, units, selected, owner ) {
       ctx.closePath();
     }
     ctx.beginPath();
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = this.mesh.color;
     ctx.fillStyle = this.mesh.color;
     ctx.ellipse(
       this.mesh.x,
@@ -398,6 +400,10 @@ function Planet( fbID, x, y, units, selected, owner ) {
 
   this.setUnits = function( numUnits ) {
     this.units = numUnits;
+    this.mesh.radiusX = this.mesh.fixedRadiusX * (1 + numUnits/200);
+    this.mesh.radiusY = this.mesh.fixedRadiusY * (1 + numUnits/200);
+    this.meshHighlight.radiusX = this.meshHighlight.fixedRadiusX * (1 + numUnits/200);
+    this.meshHighlight.radiusY = this.meshHighlight.fixedRadiusY * (1 + numUnits/200);
   };
 
   this.setOwner = function( owner ) {
