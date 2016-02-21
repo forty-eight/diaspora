@@ -269,7 +269,8 @@ function draw() {
 
 setInterval(function() {
   planets.forEach(function(planet) {
-    if (!planet.owner || planet.getUnits() > 999) return;
+    // Cap the number of units at 500
+    if (!planet.owner || planet.getUnits() > 499) return;
     planet.setUnits( planet.getUnits() + 1 );
     planet.update();
   });
