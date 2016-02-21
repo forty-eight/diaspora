@@ -1,3 +1,7 @@
+html {
+    height: 100%;
+}
+
 body {
     margin: 0;
     padding: 0;
@@ -22,7 +26,8 @@ body {
 }
 
 #canvas{
-    position:absolute;
+    position: absolute;
+    display: block;
 }
 
 .masthead {
@@ -244,14 +249,15 @@ body {
 
 .tutorial {
     position: absolute;
-    width: 450px;
+    width: calc(100% - 70px);
+    pointer-events: none;
 }
 
 .tutorial_tip {
     position: absolute;
     top: 20px;
     left: 20px;
-    background: #120C3D;
+    background: rgba(18, 12, 61, .5);
     z-index: 10;
     padding: 10px;
     border: 3px solid rgba(255, 255, 255, .7);

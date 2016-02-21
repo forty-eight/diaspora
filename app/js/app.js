@@ -74,7 +74,7 @@ authRef.onAuth(function( authData ) {
 
   // If there's a hash in the URL, we assume it's a game id.
   if ( window.location.hash.substr(1).length ) {
-    console.log('building existing game');
+    // console.log('building existing game');
     gameID = window.location.hash.substr(1);
     gameRef = new Firebase("https://ss16-diaspora.firebaseio.com/game/" + gameID);
     gameRef.once('value', function(snapshot) {
@@ -113,7 +113,7 @@ authRef.onAuth(function( authData ) {
       for (var i = getRandomInt(6, 12); i > 0; i--) {
         do {
           x = getRandomInt(50, canvas.width - 150);
-          y = getRandomInt(50, canvas.height - 150);
+          y = getRandomInt(150, canvas.height - 50);
         } while (planetIsTooClose(x, y))
         planets.push( new Planet(null, x, y) );
       }
@@ -143,7 +143,6 @@ function setupCurrentPlayer(authData) {
   gameRef.child('players/' + playerID).set(currentUser);
 
   var currentPlayerReadyBtn = document.getElementById('current-player-ready-btn');
-  var waitingForOpponentsMsg = document.getElementById('waiting-for-opponents');
   currentPlayerReadyBtn.addEventListener('click', function(e){
     markAsReady();
     var currentPlayerWaiting = document.getElementById('current-player-waiting');
@@ -164,7 +163,6 @@ function setupCurrentPlayer(authData) {
           players[i] = data[i];
           if (i === currentUser) {
             players[i].color = colors[0];
-            waitingForOpponentsMsg.style.display = 'inline-block';
             currentPlayerReadyBtn.style.display = 'inline-block';
           } else {
             var c;
@@ -173,7 +171,7 @@ function setupCurrentPlayer(authData) {
             } while (currentColors.indexOf(c) > -1);
             currentColors.push(c);
             players[i].color = c;
-            console.log('there\'s another player!')
+            // console.log('there\'s another player!')
           }
           playersRef.child(i).on('child_changed', function(snapshot) {
             players[i][snapshot.key()] = snapshot.val();
@@ -205,6 +203,7 @@ function isGameReady() {
 }
 
 function go() {
+  sounds.lobby.play();
   gameRef.child('ready').on('value', function(snapshot) {
     if (snapshot.val()) {
       gameIsReady = true;
@@ -227,10 +226,14 @@ function go() {
         }
       }.bind(this));
       createPlayerPlanets();
+      sounds.lobby.fade(1, 0, 5000, function(){
+        sounds.lobby.stop();
+      });
+      sounds.game.play();
     }
   });
   gameRef.child('winner').on('value', function(snapshot) {
-    console.log('Checking for winner');
+    // console.log('Checking for winner');
     if (!snapshot.val()) return;
     if (currentUser === snapshot.val()) {
       youWin = true;
@@ -351,7 +354,7 @@ function Planet( fbID, x, y, units, selected, owner ) {
 
   // @TODO need to set this as the player's ID
   this.owner = null;
-  this.units = units || 10;
+  this.units = units || 5;
   this.selected = selected || false;
 
   this.draw = function() {
@@ -494,12 +497,20 @@ function onlyOneOwner() {
 }
 
 function endTheGame(){
-  console.log('You won or lost! ');
+  // console.log('You won or lost! ');
   var winOrLose = document.getElementById('win-or-lose');
   if (youWin) {
     winOrLose.textContent = 'You won!';
+    sounds.game.fade(1, 0, 500, function(){
+      sounds.game.stop();
+    });
+    sounds.win.play();
   } else {
     winOrLose.textContent = 'You lost...';
+    sounds.game.fade(1, 0, 500, function(){
+      sounds.game.stop();
+    });
+    sounds.lobby.play();
   }
   body.className = 's-show-modal s-show-end-modal';
 }
@@ -566,12 +577,12 @@ function fireComet(startPlanet, endPlanet){
 
 var sounds = {
   lobby: new Howl({
-    urls: ['/sfx/lobby.mp3', '/sfx/lobby.ogg'],
+    urls: ['/sfx/astronaut-breath.mp3', '/sfx/astronaut-breath.ogg', '/sfx/astronaut-breath.wav'],
     loop: true,
     volume: 0.8
   }),
   game: new Howl({
-    urls: ['/sfx/games.mp3', '/sfx/games.ogg'],
+    urls: ['/sfx/space-cube.mp3', '/sfx/space-cube.ogg', '/sfx/space-cube.wav'],
     loop: true,
     volume: 0.8
   }),
@@ -594,6 +605,10 @@ var sounds = {
   hit: new Howl({
     urls: ['/sfx/hit.mp3', '/sfx/hit.ogg', '/sfx/hit.wav'],
     volume: 0.8
+  }),
+  win: new Howl({
+    urls: ['/sfx/win.mp3', '/sfx/win.ogg', '/sfx/win.wav'],
+    volume: 0.9
   })
 }
 
