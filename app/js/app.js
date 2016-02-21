@@ -166,7 +166,7 @@ var ctx = canvas.getContext('2d');
 var id = 0;
 
 
-var planetSelector = function(){
+function makeSelector(fn){
   var startPlanet = null;
 
   return function(planet){
@@ -179,7 +179,9 @@ var planetSelector = function(){
     }
   }
 
-}();
+}
+
+var 
 
 
 attachClickListener(canvas, planetSelector);
@@ -200,7 +202,15 @@ function draw() {
   
   comets.forEach(function(comet){
     comet.draw();
-  })
+  });
+  
+  if ( ++tick % 60 === 0 ) {
+    planets.forEach(function(planet) {
+      planet.setUnits( planet.getUnits() + 1 );
+      planet.update();
+    });
+  }
+  
 }
 
 // Call draw() using TweenLite
@@ -235,10 +245,6 @@ function Planet( fbID, x, y, units, selected, owner ) {
   this.draw = function() {
     ctx.beginPath();
     ctx.fillStyle = this.mesh.color;
-    ctx.font = "bold 25px serif";
-    var width = ctx.measureText(this.units).width;
-    var height = ctx.measureText('w').width;
-    ctx.fillText(this.units, 200 - (width/2), 200 + (height/2));
     ctx.ellipse(
       this.mesh.x,
       this.mesh.y,
@@ -249,6 +255,12 @@ function Planet( fbID, x, y, units, selected, owner ) {
       this.mesh.endAngle
     );
     ctx.fill();
+    // Label stuff
+    ctx.fillStyle = "black";
+    ctx.font = "bold 25px sans-serif";
+    var width = ctx.measureText(this.units).width;
+    var height = ctx.measureText('w').width;
+    ctx.fillText(this.units, this.mesh.x, this.mesh.y);
   };
 
   this.getUnits = function() {
@@ -286,9 +298,10 @@ function Planet( fbID, x, y, units, selected, owner ) {
 
   this.fbRef.on('value', function(dataSnapshot) {
     var data = dataSnapshot.val() || {};
-    console.log(dataSnapshot.key(), data)
+    console.log('fbRef updated', dataSnapshot.key(), data)
     if ( data.units ) this.setUnits( data.units );
     if ( data.owner ) this.owner = data.owner;
+    
   }.bind(this));
 }
 
