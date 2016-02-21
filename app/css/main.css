@@ -243,6 +243,7 @@ body {
 
 .tutorial {
     position: absolute;
+    width: 450px;
 }
 
 .tutorial_tip {
@@ -253,7 +254,7 @@ body {
     z-index: 10;
     padding: 10px;
     border: 3px solid rgba(255, 255, 255, .7);
-    width: 400px;
+    width: 100%;
     opacity: 0;
     transition: .1s opacity ease-out;
 }

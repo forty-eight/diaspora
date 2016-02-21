@@ -23,6 +23,7 @@ var youWin;
 var currentUser;
 var currentColor;
 var gameIsReady = false;
+var firstShot = true;
 
 var body = document.getElementById('body');
 
@@ -204,7 +205,7 @@ function go() {
   gameRef.child('ready').on('value', function(snapshot) {
     if (snapshot.val()) {
       gameIsReady = true;
-      console.log('EVERYONE HAS SAID THEY\'RE READY!!!!!');
+      nextTip();
       body.className = '';
       gameRef.child('comets').on('child_added', function(snapshot) {
         var comet = snapshot.val(),
@@ -545,6 +546,11 @@ function fireComet(startPlanet, endPlanet){
   });
   if (startPlanet.owner === currentUser) {
     sounds.shoot.play();
+    if (firstShot) {
+      firstShot = false;
+      nextTip();
+      autoTip();
+    }
   } else {
     sounds.shootEnemy.play();
   }
