@@ -15,13 +15,13 @@ var id = 0;
 // Demo stuff we can delete //
 //////////////////////////////
 
-var demoPlanet = new Planet( 0, Math.random() * canvas.width, Math.random() * canvas.width );
+var demoPlanet = new Planet( 0, 100, 100 );
+var demoPlanet2 = new Planet( 0, canvas.width-100, canvas.height-100 );
+var demoComet = new Comet( demoPlanet, demoPlanet2 );
 
 window.onclick = function() {
-  TweenMax.to(demoPlanet.mesh, 2, {
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    ease: Bounce.easeOut
+  demoComet.shoot(function() {
+    console.log('done bro');
   });
 };
 
@@ -37,6 +37,8 @@ function draw() {
 
   // Draw a demo planet
   demoPlanet.draw();
+  demoPlanet2.draw();
+  demoComet.draw();
 }
 
 // Call draw() using TweenLite
