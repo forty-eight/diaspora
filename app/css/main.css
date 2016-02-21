@@ -16,8 +16,8 @@ body {
 
 #space{
   position: absolute;
-	top: 0;
-	left: 0;
+    top: 0;
+    left: 0;
   background: #000000;
 }
 
@@ -164,4 +164,44 @@ body {
 .s-show-modal .canvas {
     -webkit-filter: blur(6px);
     transition: .2s -webkit-filter ease-out;
+}
+
+.players {
+    margin-top: 25px;
+}
+
+.player {
+    position: relative;
+    display: inline-block;
+    width: 170px;
+    height: 170px;
+    background: red;
+    vertical-align: middle;
+    border-radius: 50%;
+    box-shadow: 0 0 20px rgba(6,1,56,0.4);
+    transform: scale(.85);
+}
+
+.player__current {
+    transform: none;
+}
+
+.player + .player {
+    margin-left: 10px;
+}
+
+.player_label {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    left: 0;
+    padding: 20px;
+    font-size: 14px;
+    transform: translateY(-50%);
+}
+
+.player_you {
+    display: block;
+    margin-bottom: .2em;
+    font-size: 18px;
 }
