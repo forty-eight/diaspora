@@ -78,6 +78,7 @@ authRef.onAuth(function( authData ) {
       Promise.all( planetPromises ).then(function() {
         setupCurrentPlayer(authData);
       });
+      setShareLink();
     });
   } else {
     // Store the game.
@@ -99,9 +100,9 @@ authRef.onAuth(function( authData ) {
       }
       window.location.hash = gameID;
       setupCurrentPlayer(authData, 0);
+      setShareLink();
     });
   }
-  setShareLink();
 });
 
 function markAsReady() {

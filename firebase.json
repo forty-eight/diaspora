@@ -1,0 +1,9 @@
+{
+  "firebase": "ss16-diaspora",
+  "public": "app",
+  "ignore": [
+    "firebase.json",
+    "**/.*",
+    "**/node_modules/**"
+  ]
+}
