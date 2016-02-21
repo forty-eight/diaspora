@@ -95,7 +95,7 @@ authRef.onAuth(function( authData ) {
   } else {
     createNewGame();
   }
-  
+
   function createNewGame(){
     // Store the game.
     console.log('Creating a new game.');
@@ -322,7 +322,7 @@ function Planet( fbID, x, y, units, selected, owner ) {
 
   this.meshHighlight = {
     id: ++id,
-    color: 'red',
+    color: 'white',
     x: x || 0,
     y: y || 0,
     radiusX: 25,
@@ -419,10 +419,10 @@ function Planet( fbID, x, y, units, selected, owner ) {
 
   this.setUnits = function( numUnits ) {
     this.units = numUnits;
-    this.mesh.radiusX = this.mesh.fixedRadiusX * (1 + numUnits/200);
-    this.mesh.radiusY = this.mesh.fixedRadiusY * (1 + numUnits/200);
-    this.meshHighlight.radiusX = this.meshHighlight.fixedRadiusX * (1 + numUnits/200);
-    this.meshHighlight.radiusY = this.meshHighlight.fixedRadiusY * (1 + numUnits/200);
+    // this.mesh.radiusX = this.mesh.fixedRadiusX * (1 + numUnits/200);
+    // this.mesh.radiusY = this.mesh.fixedRadiusY * (1 + numUnits/200);
+    // this.meshHighlight.radiusX = this.meshHighlight.fixedRadiusX * (1 + numUnits/200);
+    // this.meshHighlight.radiusY = this.meshHighlight.fixedRadiusY * (1 + numUnits/200);
   };
 
   this.setOwner = function( owner ) {
