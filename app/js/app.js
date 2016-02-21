@@ -104,8 +104,8 @@ authRef.onAuth(function( authData ) {
     console.log('Creating a new game.');
     gamesRef.push({
       ready: false,
-      over: false,
-      timestamp: new Date().getTime()
+      timestamp: new Date().getTime(),
+      winner: false
     }).then(function(snapshot) {
       gameID = snapshot.key();
       gameRef = new Firebase("https://ss16-diaspora.firebaseio.com/game/" + gameID);
@@ -224,10 +224,19 @@ function go() {
         if ( gameIsReady && onlyOneOwner() ) {
           youWin = owners[currentUser] >= 1;
           endTheGame();
+          gameRef.update({ winner: Object.keys(owners)[0] });
         }
       }.bind(this));
       createPlayerPlanets();
     }
+  });
+  gameRef.child('winner').on('value', function(snapshot) {
+    console.log('Checking for winner');
+    if (!snapshot.val()) return;
+    if (currentUser === snapshot.val()) {
+      youWin = true;
+    }
+    endTheGame();
   });
 }
 
