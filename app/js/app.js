@@ -173,9 +173,12 @@ var planetSelector = function(){
     if(startPlanet && startPlanet !== planet){
       adjustPlanetUnits(startPlanet, planet);
       fireComet(startPlanet, planet);
+      startPlanet.unHighLightTween();
+      planet.targetTween();
       startPlanet = null;
     }else{
       startPlanet = planet;
+      startPlanet.highLightTween();
     }
   }
 
@@ -197,7 +200,7 @@ function draw() {
   planets.forEach(function(planet) {
     planet.draw();
   });
-  
+
   comets.forEach(function(comet){
     comet.draw();
   })
@@ -222,6 +225,22 @@ function Planet( fbID, x, y, units, selected, owner ) {
     y: y || 0,
     radiusX: 25,
     radiusY: 25,
+    fixedRadiusX: 25,
+    fixedRadiusY: 25,
+    rotation: 0,
+    startAngle: 0,
+    endAngle: 2 * Math.PI
+  };
+
+  this.meshHighlight = {
+    id: ++id,
+    color: 'red',
+    x: x || 0,
+    y: y || 0,
+    radiusX: 25,
+    radiusY: 25,
+    fixedRadiusX: 25,
+    fixedRadiusY: 25,
     rotation: 0,
     startAngle: 0,
     endAngle: 2 * Math.PI
@@ -233,12 +252,27 @@ function Planet( fbID, x, y, units, selected, owner ) {
   this.selected = selected || false;
 
   this.draw = function() {
-    ctx.beginPath();
-    ctx.fillStyle = this.mesh.color;
     ctx.font = "bold 25px serif";
     var width = ctx.measureText(this.units).width;
     var height = ctx.measureText('w').width;
     ctx.fillText(this.units, 200 - (width/2), 200 + (height/2));
+    if (this.selected) {
+      ctx.beginPath();
+      ctx.fillStyle = this.meshHighlight.color;
+      ctx.ellipse(
+        this.mesh.x,
+        this.mesh.y,
+        this.meshHighlight.radiusX,
+        this.meshHighlight.radiusY,
+        this.mesh.rotation,
+        this.mesh.startAngle,
+        this.mesh.endAngle
+      );
+      ctx.fill();
+      ctx.closePath();
+    }
+    ctx.beginPath();
+    ctx.fillStyle = this.mesh.color;
     ctx.ellipse(
       this.mesh.x,
       this.mesh.y,
@@ -249,7 +283,42 @@ function Planet( fbID, x, y, units, selected, owner ) {
       this.mesh.endAngle
     );
     ctx.fill();
+    ctx.closePath();
   };
+
+  this.targetTween = function() {
+    this.selected = true;
+    TweenMax.to(this.meshHighlight, .1, {
+      radiusX: this.mesh.fixedRadiusX + 3,
+      radiusY: this.mesh.fixedRadiusY + 3,
+      ease: Circ.easeInOut,
+      repeat: 1,
+      yoyo: true,
+      onComplete: function() {
+        this.selected = false;
+      }
+    });
+  }
+
+  this.highLightTween = function() {
+    this.selected = true;
+    TweenMax.to(this.meshHighlight, .1, {
+      radiusX: this.mesh.fixedRadiusX + 3,
+      radiusY: this.mesh.fixedRadiusY + 3,
+      ease: Circ.easeInOut,
+      onComplete: function() {
+        this.selected = false;
+      }
+    });
+  }
+
+  this.unHighLightTween = function() {
+    TweenMax.to(this.meshHighlight, .1, {
+      radiusX: this.mesh.fixedRadiusX,
+      radiusY: this.mesh.fixedRadiusY,
+      ease: Circ.easeInOut
+    });
+  }
 
   this.getUnits = function() {
     return this.units;
@@ -327,13 +396,13 @@ function adjustPlanetUnits(startPlanet, endPlanet){
 function fireComet(startPlanet, endPlanet){
   var comet = new Comet(startPlanet, endPlanet);
   comets.push(comet);
-  
+  startPlanet.highlighted = false;
   comet.shoot(function(){
     for(var i=0; i<comets.length; i++){
       if(comets[i] === comet) return comets.splice(i, 1);
     }
   })
-  
+
 }
 
 
@@ -347,12 +416,16 @@ function attachClickListener(canvas, fn){
     canvas.addEventListener('mousedown', function(e){
         var x = e.clientX;
         var y = e.clientY;
-
+        var selectedPlanet;
         for(var i=0; i<planets.length; i++){
             var planet = planets[i];
+            planet.selected = false;
             if(euclideanDistance(x, y, planet.mesh.x, planet.mesh.y) <= planet.mesh.radiusX){
-                return fn(planet);
+                selectedPlanet = planet;
             }
+        }
+        if (selectedPlanet) {
+          return fn(selectedPlanet);
         }
     })
 }

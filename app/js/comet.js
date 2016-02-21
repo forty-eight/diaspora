@@ -54,6 +54,12 @@ function Comet( startPlanet, endPlanet ) {
           yoyo: true,
           ease: Linear.easeNone,
           onComplete: function() {
+            // Make sure it never gets larger than it started
+            TweenMax.to(endPlanet.mesh, .05, {
+              radiusX: endPlanet.mesh.fixedRadiusX,
+              radiusY: endPlanet.mesh.fixedRadiusY,
+              ease: Linear.easeNone
+            });
             callback();
           }
         });
