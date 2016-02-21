@@ -58,6 +58,11 @@ function setShareLink() {
   return link;
 }
 
+
+/////////////////
+//  GAME INIT  //
+////////////////
+
 // After authentication completes.
 authRef.onAuth(function( authData ) {
   if ( !authData ) return;
@@ -69,6 +74,11 @@ authRef.onAuth(function( authData ) {
     gameRef = new Firebase("https://ss16-diaspora.firebaseio.com/game/" + gameID);
     gameRef.once('value', function(snapshot) {
       currentGame = snapshot.val();
+      if(currentGame.ready){
+        gameID = null;
+        gameRef = null;
+        return createNewGame();
+      }
       var planetPromises = Object.keys(currentGame.planets).map(function(planetID) {
         return planetsRef.child(currentGame.planets[planetID]).once('value', function(snapshot) {
           var planet = snapshot.val();
@@ -81,6 +91,10 @@ authRef.onAuth(function( authData ) {
       setShareLink();
     });
   } else {
+    createNewGame();
+  }
+  
+  function createNewGame(){
     // Store the game.
     console.log('Creating a new game.');
     gamesRef.push({
@@ -146,12 +160,12 @@ function setupCurrentPlayer(authData) {
             currentPlayerReadyBtn.style.display = 'inline-block';
             currentPlayerReadyBtn.style.background = players[currentUser].color;
           } else if (i === currentUser && !!!currentColor) {
-            currentColor = getRandomColor();
+            currentColor = getColor();
             players[i].color = currentColor;
             currentPlayerReadyBtn.style.display = 'inline-block';
             currentPlayerReadyBtn.style.background = players[currentUser].color;
           } else {
-            players[i].color = getRandomColor();
+            players[i].color = getColor();
           }
           playersRef.child(i).on('child_changed', function(snapshot) {
             players[i][snapshot.key()] = snapshot.val();
@@ -270,7 +284,7 @@ function draw() {
 setInterval(function() {
   planets.forEach(function(planet) {
     // Cap the number of units at 500
-    if (!planet.owner || planet.getUnits() > 499) return;
+    if (!planet.owner || planet.getUnits() >= 99) return;
     planet.setUnits( planet.getUnits() + 1 );
     planet.update();
   });
@@ -290,7 +304,7 @@ function Planet( fbID, x, y, units, selected, owner ) {
 
   this.mesh = {
     id: ++id,
-    color: '#ffff00',
+    color: '#ffffff',
     x: x || 0,
     y: y || 0,
     radiusX: 25,
@@ -466,16 +480,12 @@ function endTheGame(){
 }
 
 function adjustPlanetUnits(startPlanet, endPlanet) {
-  console.log(startPlanet, endPlanet)
   var armySize = Math.floor( startPlanet.getUnits() / 2 );
       startPlanet.setUnits( startPlanet.getUnits() - armySize );
 
-    // If it's a neutral planet
-    if ( endPlanet.owner == null ) {
-      endPlanet.setUnits( endPlanet.getUnits() + armySize );
-      endPlanet.owner = currentUser;
-    // If an enemy owns it
-    } else if ( endPlanet.owner != currentUser ) {
+
+    // If an enemy owns it or it's neutral
+    if ( endPlanet.owner != currentUser ) {
       var remaining = endPlanet.getUnits() - armySize;
       if ( remaining < 0 ) {
         endPlanet.setUnits( Math.abs(remaining) );
@@ -512,7 +522,11 @@ function fireComet(startPlanet, endPlanet){
       if(comets[i] === comet) return comets.splice(i, 1);
     }
   });
-  sounds.shoot.play();
+  if (startPlanet.owner === currentUser) {
+    sounds.shoot.play();
+  } else {
+    sounds.shootEnemy.play();
+  }
 }
 
 
@@ -532,19 +546,40 @@ var sounds = {
     volume: 0.8
   }),
   boo: new Howl({
-    urls: ['/sfx/boo-planet.mp3', '/sfx/boo-planet.ogg', '/sfx/boo-planet.wav']
+    urls: ['/sfx/boo-planet.mp3', '/sfx/boo-planet.ogg', '/sfx/boo-planet.wav'],
+    volume: 0.9
   }),
   yay: new Howl({
-    urls: ['/sfx/yay-planet.mp3', '/sfx/yay-planet.ogg', '/sfx/yay-planet.wav']
+    urls: ['/sfx/yay-planet.mp3', '/sfx/yay-planet.ogg', '/sfx/yay-planet.wav'],
+    volume: 0.9
   }),
   shoot: new Howl({
-    urls: ['/sfx/shoot.mp3', '/sfx/shoot.ogg', '/sfx/shoot.wav']
+    urls: ['/sfx/shoot2.mp3', '/sfx/shoot2.ogg', '/sfx/shoot2.wav'],
+    volume: 0.8
+  }),
+  shootEnemy: new Howl({
+    urls: ['/sfx/shoot2_enemy.mp3', '/sfx/shoot2_enemy.ogg', '/sfx/shoot2_enemy.wav'],
+    volume: 0.8
   }),
   hit: new Howl({
-    urls: ['/sfx/hit.mp3', '/sfx/hit.ogg', '/sfx/hit.wav']
+    urls: ['/sfx/hit.mp3', '/sfx/hit.ogg', '/sfx/hit.wav'],
+    volume: 0.8
   })
 }
 
+
+////////////////
+//   COLORS   //
+////////////////
+
+var colors = [
+  '#a4d3f0',
+  '#f29c9c',
+  '#eaa8d3',
+  '#cc98e3',
+  '#a3ecc5',
+  '#e3cc98'
+];
 
 ////////////////
 //   EVENTS   //
@@ -581,6 +616,10 @@ function euclideanDistance(x1,y1,x2,y2){
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
+}
+
+function getColor(){
+  return colors.shift() || getRandomColor();
 }
 
 function getRandomColor(){

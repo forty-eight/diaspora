@@ -71,7 +71,7 @@ function Star(x, y, length, opacity) {
  * @param context
  */
 Star.prototype.draw = function() {
-	context.rotate((Math.PI * 1 / 10));
+	// context.rotate((Math.PI * 1 / 10));
 	
 	// Save the context
 	context.save();

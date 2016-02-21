@@ -15,15 +15,16 @@ body {
 }
 
 #space{
-  position: absolute;
+    position: absolute;
     top: 0;
     left: 0;
-  background: #000000;
+    background: #000000;
 }
 
 #canvas{
     position:absolute;
 }
+
 .masthead {
     display: block;
     position: fixed;
@@ -211,6 +212,7 @@ body {
     padding: 20px;
     font-size: 14px;
     transform: translateY(-50%);
+    color: #000;
 }
 
 .player_you {
