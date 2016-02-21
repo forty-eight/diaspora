@@ -170,7 +170,7 @@ var planetSelector = function(){
   var startPlanet = null;
 
   return function(planet){
-    if(startPlanet){
+    if(startPlanet && startPlanet !== planet){
       adjustPlanetUnits(startPlanet, planet);
       fireComet(startPlanet, planet);
       startPlanet = null;
@@ -211,7 +211,7 @@ TweenLite.ticker.addEventListener("tick", draw);
 // Planet //
 ////////////
 
-function Planet( fbID, x, y, units, spinning, owner ) {
+function Planet( fbID, x, y, units, selected, owner ) {
   this.id = fbID || null;
   this.fbRef = this.id ? new Firebase("https://ss16-diaspora.firebaseio.com/planets/" + this.id) : null;
 
@@ -230,11 +230,15 @@ function Planet( fbID, x, y, units, spinning, owner ) {
   // @TODO need to set this as the player's ID
   this.owner = null;
   this.units = units || 10;
-  this.spinning = spinning || false;
+  this.selected = selected || false;
 
   this.draw = function() {
     ctx.beginPath();
     ctx.fillStyle = this.mesh.color;
+    ctx.font = "bold 25px serif";
+    var width = ctx.measureText(this.units).width;
+    var height = ctx.measureText('w').width;
+    ctx.fillText(this.units, 200 - (width/2), 200 + (height/2));
     ctx.ellipse(
       this.mesh.x,
       this.mesh.y,
