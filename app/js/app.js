@@ -209,7 +209,7 @@ function makeSelector(fn){
       startPlanet.unHighLightTween();
       planet.targetTween();
       startPlanet = null;
-      
+
     }else if(planet.owner === currentUser){
       startPlanet = planet;
       startPlanet.highLightTween();
@@ -241,7 +241,7 @@ function draw() {
   comets.forEach(function(comet){
     comet.draw();
   });
-  
+
 }
 
 setInterval(function() {
@@ -310,19 +310,23 @@ function Planet( fbID, x, y, units, selected, owner ) {
         this.meshHighlight.radiusY,
         this.mesh.rotation,
         this.mesh.startAngle,
-        this.mesh.endAngle,
-        this.mesh.color
+        this.mesh.endAngle
       );
       ctx.fill();
       ctx.closePath();
     }
+    ctx.beginPath();
+    ctx.fillStyle = this.mesh.color;
+    ctx.ellipse(
+      this.mesh.x,
+      this.mesh.y,
+      this.mesh.radiusX,
+      this.mesh.radiusY,
+      this.mesh.rotation,
+      this.mesh.startAngle,
+      this.mesh.endAngle
+    );
     ctx.fill();
-    // Label stuff
-    ctx.fillStyle = "black";
-    ctx.font = "bold 25px sans-serif";
-    var width = ctx.measureText(this.units).width;
-    var height = ctx.measureText('w').width;
-    ctx.fillText(this.units, this.mesh.x, this.mesh.y);
     ctx.closePath();
   };
 
@@ -367,7 +371,7 @@ function Planet( fbID, x, y, units, selected, owner ) {
   this.setUnits = function( numUnits ) {
     this.units = numUnits;
   };
-  
+
   this.setOwner = function( owner ) {
     this.owner = owner;
     this.mesh.color = players[owner].color;
