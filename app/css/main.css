@@ -104,11 +104,46 @@ body {
 .msg_link,
 .msg_link:active,
 .msg_link:visited {
+    position: relative;
     display: inline-block;
+    border: 0;
     border-bottom: 1px dotted rgba(255,255,255,0.4);
+    background: transparent;
     color: rgba(255,255,255,.8);
     font-size: 18px;
     text-decoration: none;
+}
+
+.msg_link:hover,
+.msg_link:focus {
+    border: 0;
+    border-bottom: 1px dotted rgba(255,255,255,0.8);
+    outline: 0;
+}
+
+.msg_link-copied {
+    position: absolute;
+    top: -4px;
+    right: -2px;
+    display: inline-block;
+    background: black;
+    border-radius: 4px;
+    font-size: 12px;
+    padding: 6px 8px;
+    line-height: 1;
+    transform: translateX(100%);
+    opacity: 0;
+    pointer-events: none;
+    transition: .2s opacity ease-out;
+}
+
+.msg_link-copied.is-visible {
+    opacity: 1;
+}
+
+#share-link-href {
+    position: fixed;
+    left: -10000px;
 }
 
 .msg_no-friends {

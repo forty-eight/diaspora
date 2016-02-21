@@ -30,9 +30,11 @@
             <div class="modal_content">
                 <h1 class="msg_logo logo">DIASPORA</h1>
                 <p class="msg_share">To play the game share this link with a friend:</p>
-                <a id="share-link" class="msg_link" href="" target="_blank">
-                    [...]
-                </a>
+                <input id="share-link-href" value="">
+                <button id="share-link" class="msg_link" data-clipboard-target="#share-link-href">
+                    <span id="share-link-btn-txt"></span>
+                    <span id="copied" class="msg_link-copied">Copied!</span>
+                </button>
                 <p class="msg_no-friends">(If you have no friends, you can paste the link into a second tab.)</p>
             </div>
         </div>
@@ -43,6 +45,20 @@
         <script src="js/vendor/TweenMax.min.js"></script>
         <script src="js/comet.js"></script>
         <script src="js/app.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.5.5/clipboard.min.js"></script>
+        <script>
+            var clipboard = new Clipboard('#share-link');
+            clipboard.on('success', function(e) {
+                var copied = document.getElementById('copied');
+                copied.className = 'msg_link-copied is-visible';
+                timeoutID = window.setTimeout(function() {
+                    copied.className = 'msg_link-copied';
+                    window.clearTimeout(timeoutID);
+                }, 2000);
+            });
+            clipboard.on('error', function(e) {
+            });
+        </script>
 
         <!-- Google Analytics: change UA-XXXXX-X to be your site's ID. -->
         <script>
