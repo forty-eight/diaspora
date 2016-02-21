@@ -21,6 +21,7 @@ var players = {};
 var currentUser;
 var gameIsReady = false;
 
+var body = document.getElementById('body');
 var modal = document.getElementById('modal');
 
 /////////////////
@@ -163,6 +164,7 @@ function go() {
     if (snapshot.val()) {
       gameIsReady = true;
       console.log('EVERYONE HAS SAID THEY\'RE READY!!!!!');
+      body.className = '';
       gameRef.child('comets').on('child_added', function(snapshot) {
         var comet = snapshot.val(),
                     startPlanet,
