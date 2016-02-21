@@ -167,11 +167,29 @@ var ctx = canvas.getContext('2d');
 var id = 0;
 
 
+var planetSelector = function(){
+  var startPlanet = null;
+  
+  return function(planet){
+    if(startPlanet){
+      adjustPlanetUnits(startPlanet, planet);
+      startPlanet = null;
+    }else{
+      startPlanet = planet;
+    }
+  }
+  
+}();
+
+
+attachClickListener(canvas, planetSelector);
+
+
 //////////////////////////////
 // Demo stuff we can delete //
 //////////////////////////////
 
-
+/*
 window.onclick = function() {
   planets.forEach(function(planet) {
     TweenMax.to(planet.mesh, 2, {
@@ -181,7 +199,7 @@ window.onclick = function() {
     });
   });
 };
-
+*/
 
 //////////
 // Draw //
@@ -277,16 +295,73 @@ function Planet( fbID, x, y, units, spinning, owner ) {
 
   this.fbRef.on('value', function(dataSnapshot) {
     var data = dataSnapshot.val() || {};
-    console.log(data)
+    console.log(dataSnapshot.key(), data)
     if ( data.units ) this.setUnits( data.units );
     if ( data.owner ) this.owner = data.owner;
   }.bind(this));
 }
 
 
+function adjustPlanetUnits(startPlanet, endPlanet){
+  var armySize = Math.floor( startPlanet.getUnits() / 2 );
+    startPlanet.setUnits( startPlanet.getUnits() - armySize );
+
+    // If it's a neutral planet
+    if ( endPlanet.owner == null ) {
+      endPlanet.setUnits( endPlanet.getUnits() + armySize );
+      endPlanet.owner = currentUser;
+    // If an enemy owns it
+    } else if ( endPlanet.owner != currentUser ) {
+      var remaining = endPlanet.getUnits() - armySize;
+      if ( remaining < 0 ) {
+        endPlanet.setUnits( Math.abs(remaining) );
+        endPlanet.owner = currentUser;
+      } else if ( remaining == 0 ) {
+        endPlanet.setUnits( 0 );
+        endPlanet.owner = null;
+      } else {
+        endPlanet.setUnits( remaining );
+      }
+    // If you own it
+    } else {
+      endPlanet.setUnits( endPlanet.getUnits() + armySize );
+    }
+    
+    startPlanet.update();
+    endPlanet.update();
+  
+}
+
+
+
+////////////////
+//   EVENTS   //
+///////////////
+
+//Pass the canvas element and a function that will be called when a planet is clicked
+function attachClickListener(canvas, fn){
+    canvas.addEventListener('mousedown', function(e){
+        var x = e.clientX;
+        var y = e.clientY;
+    
+        for(var i=0; i<planets.length; i++){
+            var planet = planets[i];
+            if(euclideanDistance(x, y, planet.mesh.x, planet.mesh.y) <= planet.mesh.radiusX){
+                return fn(planet);  
+            }
+        }
+    })
+}
+
 ////////////////
 // UTIL STUFF //
 ////////////////
+
+function euclideanDistance(x1,y1,x2,y2){
+    var xdiff = x1-x2;
+    var ydiff = y1-y2;
+    return Math.sqrt(xdiff*xdiff + ydiff*ydiff)
+}
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
