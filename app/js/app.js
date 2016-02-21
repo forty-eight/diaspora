@@ -482,6 +482,12 @@ function onlyOneOwner() {
 
 function endTheGame(){
   console.log('You won or lost! ');
+  var winOrLose = document.getElementById('win-or-lose');
+  if (youWin) {
+    winOrLose.textContent = 'You won!';
+  } else {
+    winOrLose.textContent = 'You lost...';
+  }
   body.className = 's-show-modal s-show-end-modal';
 }
 
