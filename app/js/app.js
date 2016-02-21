@@ -196,6 +196,7 @@ function go() {
           if (planet.id == comet.endPlanet) endPlanet = planet;
         });
         fireComet(startPlanet, endPlanet);
+        snapshot.ref().remove()
         // For some reason this is here.
         if ( gameIsReady && onlyOneOwner() ) endTheGame();
       }.bind(this));
@@ -243,8 +244,6 @@ function makeSelector(fn){
 }
 
 var planetSelector = makeSelector(adjustPlanetUnits);
-// var fbSelector = makeSelector(fireComet);
-
 
 attachClickListener(canvas, planetSelector);
 
@@ -255,8 +254,7 @@ attachClickListener(canvas, planetSelector);
 
 function draw() {
   // Clear the canvas
-  ctx.fillStyle = "#120C3D";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   planets.forEach(function(planet) {
     planet.draw();
@@ -402,6 +400,11 @@ function Planet( fbID, x, y, units, selected, owner ) {
   };
 
   this.setOwner = function( owner ) {
+    if (this.owner !== owner && owner == currentUser) {
+      sounds.yay.play();
+    } else if (this.owner !== owner && owner !== currentUser) {
+      sounds.boo.play();
+    }
     this.owner = owner;
     this.mesh.color = players[owner].color;
   };
@@ -495,19 +498,49 @@ function fireComet(startPlanet, endPlanet){
   var comet = new Comet(startPlanet, endPlanet);
   comets.push(comet);
   startPlanet.highlighted = false;
-  comet.shoot(function(){
+  comet.shoot(function() {
+    sounds.hit.play();
     for(var i=0; i<comets.length; i++){
       if(comets[i] === comet) return comets.splice(i, 1);
     }
-  })
-
+  });
+  sounds.shoot.play();
 }
 
+
+////////////////
+//   SOUNDZ   //
+////////////////
+
+var sounds = {
+  lobby: new Howl({
+    urls: ['/sfx/lobby.mp3', '/sfx/lobby.ogg'],
+    loop: true,
+    volume: 0.8
+  }),
+  game: new Howl({
+    urls: ['/sfx/games.mp3', '/sfx/games.ogg'],
+    loop: true,
+    volume: 0.8
+  }),
+  boo: new Howl({
+    urls: ['/sfx/boo-planet.mp3', '/sfx/boo-planet.ogg', '/sfx/boo-planet.wav']
+  }),
+  yay: new Howl({
+    urls: ['/sfx/yay-planet.mp3', '/sfx/yay-planet.ogg', '/sfx/yay-planet.wav']
+  }),
+  shoot: new Howl({
+    urls: ['/sfx/shoot.mp3', '/sfx/shoot.ogg', '/sfx/shoot.wav']
+  }),
+  hit: new Howl({
+    urls: ['/sfx/hit.mp3', '/sfx/hit.ogg', '/sfx/hit.wav']
+  })
+}
 
 
 ////////////////
 //   EVENTS   //
-///////////////
+////////////////
 
 //Pass the canvas element and a function that will be called when a planet is clicked
 function attachClickListener(canvas, fn){
