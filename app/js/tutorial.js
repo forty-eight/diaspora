@@ -29,7 +29,7 @@ function nextTip() {
 function autoTip() {
   tipTimer = setInterval(function() {
     nextTip();
-  }, 5000);
+  }, 10000);
 }
 
 function getNumTimesTutorialShown() {

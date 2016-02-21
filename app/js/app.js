@@ -164,7 +164,6 @@ function setupCurrentPlayer(authData) {
           players[i] = data[i];
           if (i === currentUser) {
             players[i].color = colors[0];
-            currentPlayerReadyBtn.style.background = players[currentUser].color;
             waitingForOpponentsMsg.style.display = 'inline-block';
             currentPlayerReadyBtn.style.display = 'inline-block';
           } else {
