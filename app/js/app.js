@@ -21,7 +21,7 @@ var players = {};
 var owners = {};
 var youWin;
 var currentUser;
-var currentColor;
+var currentColors = [];
 var gameIsReady = false;
 var firstShot = true;
 
@@ -143,6 +143,7 @@ function setupCurrentPlayer(authData) {
   gameRef.child('players/' + playerID).set(currentUser);
 
   var currentPlayerReadyBtn = document.getElementById('current-player-ready-btn');
+  var waitingForOpponentsMsg = document.getElementById('waiting-for-opponents');
   currentPlayerReadyBtn.addEventListener('click', function(e){
     markAsReady();
     var currentPlayerWaiting = document.getElementById('current-player-waiting');
@@ -156,21 +157,24 @@ function setupCurrentPlayer(authData) {
     // console.log(snapshot.val())
     playersRef.once('value', function(snapshot) {
       var data = snapshot.val();
+      currentColors = [];
       players = {};
       Object.keys(data).forEach(function(i) {
         if (data[i].gameid === gameID) {
           players[i] = data[i];
-          if (i === currentUser && !!currentColor) {
-            players[i].color = currentColor;
-            currentPlayerReadyBtn.style.display = 'inline-block';
+          if (i === currentUser) {
+            players[i].color = colors[0];
             currentPlayerReadyBtn.style.background = players[currentUser].color;
-          } else if (i === currentUser && !!!currentColor) {
-            currentColor = getColor();
-            players[i].color = currentColor;
+            waitingForOpponentsMsg.style.display = 'inline-block';
             currentPlayerReadyBtn.style.display = 'inline-block';
-            currentPlayerReadyBtn.style.background = players[currentUser].color;
           } else {
-            players[i].color = getColor();
+            var c;
+            do {
+              c = getColor();
+            } while (currentColors.indexOf(c) > -1);
+            currentColors.push(c);
+            players[i].color = c;
+            console.log('there\'s another player!')
           }
           playersRef.child(i).on('child_changed', function(snapshot) {
             players[i][snapshot.key()] = snapshot.val();
@@ -636,8 +640,8 @@ function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
 }
 
-function getColor(){
-  return colors.shift() || getRandomColor();
+function getColor() {
+  return colors[getRandomInt(1, colors.length -1)];
 }
 
 function getRandomColor(){
