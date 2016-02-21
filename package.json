@@ -14,7 +14,6 @@
         "time-grunt": "^1.0.0"
     },
     "scripts": {
-        "install": "grunt bowercopy",
         "build": "echo wooooooooo"
     }
 }
