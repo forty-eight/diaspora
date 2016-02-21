@@ -18,6 +18,8 @@ var tick = 0, planets = [], comets = [];
 var id = 0;
 var clicks = [];
 var players = {};
+var owners = {};
+var youWin;
 var currentUser;
 var currentColor;
 var gameIsReady = false;
@@ -214,8 +216,10 @@ function go() {
         });
         fireComet(startPlanet, endPlanet);
         snapshot.ref().remove()
-        // For some reason this is here.
-        if ( gameIsReady && onlyOneOwner() ) endTheGame();
+        if ( gameIsReady && onlyOneOwner() ) {
+          youWin = owners[currentUser] >= 1;
+          endTheGame();
+        }
       }.bind(this));
       createPlayerPlanets();
     }
@@ -285,7 +289,7 @@ function draw() {
 
 setInterval(function() {
   planets.forEach(function(planet) {
-    // Cap the number of units at 500
+    // Cap the number of units at 99
     if (!planet.owner || planet.getUnits() >= 99) return;
     planet.setUnits( planet.getUnits() + 1 );
     planet.update();
@@ -473,7 +477,6 @@ function onlyOneOwner() {
     if (!planet.owner) return;
     owners[planet.owner] = 1;
   });
-  console.log(Object.keys(owners).length === 1)
   return Object.keys(owners).length === 1;
 }
 

@@ -236,3 +236,27 @@ body {
     margin-bottom: .2em;
     font-size: 16px;
 }
+
+.tutorial_color {
+    background-color: #a4d3f0;
+}
+
+.tutorial {
+    position: absolute;
+}
+
+.tutorial_tip {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: #120C3D;
+    z-index: 10;
+    padding: 10px;
+    border: 3px solid rgba(255, 255, 255, .7);
+    width: 400px;
+    opacity: 0;
+    transition: .1s opacity ease-out;
+}
+.tutorial_tip.is-visible {
+    opacity: 1;
+}
