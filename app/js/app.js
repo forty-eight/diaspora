@@ -103,6 +103,16 @@ authRef.onAuth(function( authData ) {
   setShareLink();
 });
 
+var currentPlayerReadyBtn = document.getElementById('current-player-ready-btn');
+currentPlayerReadyBtn.addEventListener('click', function(e){
+  markAsReady();
+  var currentPlayerWaiting = document.getElementById('current-player-waiting');
+  var currentPlayerReady = document.getElementById('current-player-ready');
+  currentPlayerWaiting.style.display = 'none';
+  currentPlayerReady.style.display = 'block';
+  currentPlayerReadyBtn.style.pointerEvents = 'none';
+});
+
 function markAsReady() {
   playersRef.child(currentUser).update({
     ready: true

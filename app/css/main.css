@@ -180,10 +180,21 @@ body {
     border-radius: 50%;
     box-shadow: 0 0 20px rgba(6,1,56,0.4);
     transform: scale(.85);
+    transition: .1s transform ease-out;
+    cursor: default;
 }
 
 .player__current {
+    cursor: pointer;
     transform: none;
+}
+
+.player__current:hover {
+    transform: scale(1.05);
+}
+
+.player_label__waiting {
+    display: none;
 }
 
 .player + .player {

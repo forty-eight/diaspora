@@ -38,15 +38,18 @@
                 </button>
                 <p class="msg_no-friends">(If you have no friends, you can paste the link into a second tab.)</p>
                 <div class="players">
-                    <div class="player player__current">
-                        <div class="player_label">
+                    <div id="current-player-ready-btn" class="player player__current">
+                        <div id="current-player-waiting" class="player_label player_label__click">
                             <span class="player_you">You</span>
                             Click when ready
                         </div>
+                        <div id="current-player-ready" class="player_label player_label__waiting">
+                            You're ready! Waiting for others.
+                        </div>
                     </div>
-                    <div class="player">
+                    <!-- <div class="player">
                         <div class="player_label">Waiting for opponent to be ready</div>
-                    </div>
+                    </div> -->
                 </div>
             </div>
         </div>
