@@ -13,7 +13,7 @@
         <link rel="stylesheet" href="css/main.css">
         <link href='https://fonts.googleapis.com/css?family=Raleway|Merienda+One' rel='stylesheet' type='text/css'>
     </head>
-    <body class="s-show-modal" id="body">
+    <body class="s-show-modal s-show-start-modal" id="body">
         <!--[if lt IE 10]>
             <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
         <![endif]-->
@@ -22,7 +22,7 @@
         <canvas id="canvas" class="canvas"></canvas>
 
         <h1 class="masthead logo">DIASPORA</h1>
-        
+
         <div id="tutorial">
             <div id="tip-1">This is your starting planet. It slowly grows over time. Click your home planet.</div>
             <div id="tip-2">Neutral planets are gray. Click this planet to send half your home units to it.</div>
@@ -32,7 +32,7 @@
         <div id="modal" class="modal">
             <div class="modal_shroud"></div>
             <div class="modal_shape"></div>
-            <div class="modal_content">
+            <div id="start-modal" class="modal_content modal_content__start">
                 <h1 class="msg_logo logo">DIASPORA</h1>
                 <p class="msg_share">To play the game share this link with a friend:</p>
                 <input id="share-link-href" value="">
@@ -55,6 +55,13 @@
                         <div class="player_label">Waiting for opponent to be ready</div>
                     </div> -->
                 </div>
+            </div>
+            <div id="end-modal" class="modal_content modal_content__end">
+                <h1 class="msg_logo logo">DIASPORA</h1>
+                <p class="msg_status">You won!</p>
+                <p class="msg_replay">Replay</p>
+                <a id="replay-link" class="msg_link" href="">
+                </a>
             </div>
         </div>
 

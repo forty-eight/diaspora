@@ -23,7 +23,6 @@ var currentColor;
 var gameIsReady = false;
 
 var body = document.getElementById('body');
-var modal = document.getElementById('modal');
 
 /////////////////
 // LOBBY STUFF //
@@ -49,13 +48,16 @@ if ( !authRef.getAuth() ) {
   }, {remember: 'sessionOnly'});
 }
 
-function setShareLink() {
-  var link = window.location;
+function setgameLinks() {
+  var shareLink = window.location.href;
+  var replayLink = window.location.href.replace(window.location.hash, '');
   var shareLinkBtnText = document.getElementById('share-link-btn-txt');
   var shareLinkHref = document.getElementById('share-link-href');
-  shareLinkBtnText.textContent = link;
-  shareLinkHref.setAttribute('value', link);
-  return link;
+  var replayLink = document.getElementById('replay-link');
+  shareLinkBtnText.textContent = shareLink;
+  shareLinkHref.setAttribute('value', shareLink);
+  replayLink.textContent = replayLink;
+  replayLink.href = replayLink;
 }
 
 
@@ -88,7 +90,7 @@ authRef.onAuth(function( authData ) {
       Promise.all( planetPromises ).then(function() {
         setupCurrentPlayer(authData);
       });
-      setShareLink();
+      setgameLinks();
     });
   } else {
     createNewGame();
@@ -114,7 +116,7 @@ authRef.onAuth(function( authData ) {
       }
       window.location.hash = gameID;
       setupCurrentPlayer(authData, 0);
-      setShareLink();
+      setgameLinks();
     });
   }
 });
@@ -477,6 +479,7 @@ function onlyOneOwner() {
 
 function endTheGame(){
   console.log('You won or lost! ');
+  body.className = 's-show-modal s-show-end-modal';
 }
 
 function adjustPlanetUnits(startPlanet, endPlanet) {

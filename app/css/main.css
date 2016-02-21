@@ -95,11 +95,17 @@ body {
 }
 
 .modal_content {
+    display: none;
     position: fixed;
     top: 50%;
     right: 0;
     left: 0;
     text-align: center;
+}
+
+.s-show-start-modal .modal_content__start,
+.s-show-end-modal .modal_content__end {
+    display: block;
 }
 
 .msg_logo {
@@ -161,6 +167,16 @@ body {
 .msg_no-friends {
     margin: .8em 0 0;
     font-size: 11px;
+}
+
+.msg_status {
+    margin: 0 0 .4em;
+    font-size: 24px;
+}
+
+.msg_replay {
+    margin: 0 0 .5em;
+    font-size: 18px;
 }
 
 .s-show-modal .canvas {
