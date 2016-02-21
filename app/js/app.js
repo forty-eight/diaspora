@@ -19,6 +19,7 @@ var id = 0;
 var clicks = [];
 var players = {};
 var currentUser;
+var currentColor;
 var gameIsReady = false;
 
 var body = document.getElementById('body');
@@ -103,16 +104,6 @@ authRef.onAuth(function( authData ) {
   setShareLink();
 });
 
-var currentPlayerReadyBtn = document.getElementById('current-player-ready-btn');
-currentPlayerReadyBtn.addEventListener('click', function(e){
-  markAsReady();
-  var currentPlayerWaiting = document.getElementById('current-player-waiting');
-  var currentPlayerReady = document.getElementById('current-player-ready');
-  currentPlayerWaiting.style.display = 'none';
-  currentPlayerReady.style.display = 'block';
-  currentPlayerReadyBtn.style.pointerEvents = 'none';
-});
-
 function markAsReady() {
   playersRef.child(currentUser).update({
     ready: true
@@ -131,6 +122,16 @@ function setupCurrentPlayer(authData) {
   currentUser = playerID;
   gameRef.child('players/' + playerID).set(currentUser);
 
+  var currentPlayerReadyBtn = document.getElementById('current-player-ready-btn');
+  currentPlayerReadyBtn.addEventListener('click', function(e){
+    markAsReady();
+    var currentPlayerWaiting = document.getElementById('current-player-waiting');
+    var currentPlayerReady = document.getElementById('current-player-ready');
+    currentPlayerWaiting.style.display = 'none';
+    currentPlayerReady.style.display = 'block';
+    currentPlayerReadyBtn.style.pointerEvents = 'none';
+  });
+
   gameRef.child('players').on('value', function(snapshot) {
     // console.log(snapshot.val())
     playersRef.once('value', function(snapshot) {
@@ -139,7 +140,18 @@ function setupCurrentPlayer(authData) {
       Object.keys(data).forEach(function(i) {
         if (data[i].gameid === gameID) {
           players[i] = data[i];
-          players[i].color = getRandomColor();
+          if (i === currentUser && !!currentColor) {
+            players[i].color = currentColor;
+            currentPlayerReadyBtn.style.display = 'inline-block';
+            currentPlayerReadyBtn.style.background = players[currentUser].color;
+          } else if (i === currentUser && !!!currentColor) {
+            currentColor = getRandomColor();
+            players[i].color = currentColor;
+            currentPlayerReadyBtn.style.display = 'inline-block';
+            currentPlayerReadyBtn.style.background = players[currentUser].color;
+          } else {
+            players[i].color = getRandomColor();
+          }
           playersRef.child(i).on('child_changed', function(snapshot) {
             players[i][snapshot.key()] = snapshot.val();
             isGameReady();

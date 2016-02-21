@@ -185,6 +185,7 @@ body {
 }
 
 .player__current {
+    display: none;
     cursor: pointer;
     transform: none;
 }
