@@ -378,8 +378,8 @@ function Planet( fbID, x, y, units, selected, owner ) {
   this.targetTween = function() {
     this.selected = true;
     TweenMax.to(this.meshHighlight, .1, {
-      radiusX: this.mesh.radiusX + 3,
-      radiusY: this.mesh.radiusY + 3,
+      radiusX: this.mesh.fixedRadiusX + 3,
+      radiusY: this.mesh.fixedRadiusY + 3,
       ease: Circ.easeInOut,
       repeat: 1,
       yoyo: true,
@@ -392,8 +392,8 @@ function Planet( fbID, x, y, units, selected, owner ) {
   this.highLightTween = function() {
     this.selected = true;
     TweenMax.to(this.meshHighlight, .1, {
-      radiusX: this.mesh.radiusX + 3,
-      radiusY: this.mesh.radiusY + 3,
+      radiusX: this.mesh.fixedRadiusX + 3,
+      radiusY: this.mesh.fixedRadiusY + 3,
       ease: Circ.easeInOut,
       onComplete: function() {
         this.selected = false;
@@ -403,8 +403,8 @@ function Planet( fbID, x, y, units, selected, owner ) {
 
   this.unHighLightTween = function() {
     TweenMax.to(this.meshHighlight, .1, {
-      radiusX: this.mesh.radiusX,
-      radiusY: this.mesh.radiusY,
+      radiusX: this.mesh.fixedRadiusX,
+      radiusY: this.mesh.fixedRadiusY,
       ease: Circ.easeInOut
     });
   }
