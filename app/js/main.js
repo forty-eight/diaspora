@@ -67,23 +67,11 @@ authRef.onAuth(function( authData ) {
       var planetPromises = Object.keys(currentGame.planets).map(function(planetID) {
         return planetsRef.child(currentGame.planets[planetID]).once('value', function(snapshot) {
           var planet = snapshot.val();
-          planets.push( new Planet(snapshot.name(), planet.position.x, planet.position.y) );
+          planets.push( new Planet(snapshot.key(), planet.position.x, planet.position.y) );
         });
       });
-      var playerPromises = [];
-      if (currentGame.players) {
-        var playerPromises = Object.keys(currentGame.players).map(function(playerID) {
-          return playersRef.child(currentGame.players[playerID]).once('value', function(snapshot) {
-            var player = snapshot.key();
-            players[player] = player; // todo: make a players model
-            console.log('num users',Object.keys(players).length);
-          });
-        });
-      }
-      var allPromises = planetPromises.concat(playerPromises);
-      Promise.all( allPromises ).then(function() {
+      Promise.all( planetPromises ).then(function() {
         setupCurrentPlayer(authData);
-        go(); // might need to wait for stuff to happen in setupCurrentPlayer?
       });
     });
   } else {
@@ -101,44 +89,77 @@ authRef.onAuth(function( authData ) {
         do {
           x = getRandomInt(-500, 500);
           y = getRandomInt(-500, 500);
-          // console.log(x, y)
         } while (planetIsTooClose(x, y))
         planets.push( new Planet(null, x, y) );
       }
       window.location.hash = gameID;
       setupCurrentPlayer(authData, 0);
-      go(); // might need to wait for stuff to happen in setupCurrentPlayer?
     });
   }
 });
 
+function markAsReady() {
+  playersRef.child(currentUser).update({
+    ready: true
+  });
+}
+
 function setupCurrentPlayer(authData) {
   // Store the user as a player.
-  var playerId = playersRef.push({
+  var playerID = playersRef.push({
     avatar: 'http://www.gravatar.com/avatar/' + CryptoJS.MD5( authData.uid ) + '?d=retro',
     gameid: gameID,
     ready: false,
-    attacking: {
-      fromPlanet: null,
-      toPlanet: null
-    },
     authData: authData,
     timestamp: new Date().getTime()
   }).key();
-  // Update the current user
-  players[playerId] = playerId; // need a player model
-  currentUser = playerId;
-  gameRef.child('players/'+playerId).set(currentUser);
-  console.log('user id: ', currentUser);
-  console.log('game id: ', gameID);
+  currentUser = playerID;
+  gameRef.child('players/' + playerID).set(currentUser);
+  
+  gameRef.child('players').on('value', function(snapshot) {
+    // console.log(snapshot.val())
+    playersRef.once('value', function(snapshot) {
+      var data = snapshot.val();
+      players = {};
+      Object.keys(data).forEach(function(i) {
+        if (data[i].gameid === gameID) {
+          players[i] = data[i];
+          playersRef.child(i).on('child_changed', function(snapshot) {
+            players[i][snapshot.key()] = snapshot.val();
+            isGameReady();
+          });
+        }
+      });
+
+    });
+  });
+  
   // If the user closes the tab, delete them.
-  this.playersRef.child( currentUser ).onDisconnect().remove();
-  this.gameRef.child('players').child(currentUser).onDisconnect().remove();
+  playersRef.child( currentUser ).onDisconnect().remove();
+  gameRef.child('players').child( currentUser ).onDisconnect().remove();
+  
+  go();
+}
+
+function isGameReady() {
+  if (players.length < 2) return false;
+  var weAreReady = Object.keys(players).every(function(p) {
+    return players[p].ready;
+  });
+  if (weAreReady) {
+    gameRef.update({
+      ready: true
+    });
+  }
 }
 
 function go() {
-  init();
-  animate();
+  gameRef.child('ready').on('value', function(snapshot) {
+    if (snapshot.val()) console.log('EVERYONE HAS SAID THEY\'RE READY!!!!!');
+    init();
+    animate();
+  });
+  
 }
 
 ////////////
@@ -200,7 +221,6 @@ function Planet( fbID, x, y, units, spinning, owner ) {
   
   this.fbRef.on('value', function(dataSnapshot) {
     var data = dataSnapshot.val() || {};
-    console.log(data)
     if ( data.units ) this.setUnits( data.units );
     if ( data.owner ) this.owner = data.owner;
   }.bind(this));
@@ -236,11 +256,6 @@ function Comet( startX, startY, endX, endY, size ) {
   this.cometOptions.position.x = this.startX;
   this.cometOptions.position.y = this.startY;
 
-  this.particleSystem = new THREE.GPUParticleSystem({
-		maxParticles: 250000
-	});
-
-	scene.add( this.particleSystem );
 }
 
 Comet.prototype.render = function() {
@@ -249,12 +264,12 @@ Comet.prototype.render = function() {
   tick += delta;
   if (tick < 0) tick = 0;
 
-  this.cometOptions.position.x = this.cometOptions.position.x + 1;
-  this.cometOptions.position.y = this.cometOptions.position.y + 1;
+  this.cometOptions.position.x = this.cometOptions.position.x + 50;
+  this.cometOptions.position.y = this.cometOptions.position.y + 50;
 
   if (delta > 0) {
     for (var x = 0; x < 15000 * delta; x++) {
-      this.particleSystem.spawnParticle(this.cometOptions);
+      particleSystem.spawnParticle(this.cometOptions);
     }
   }
 
@@ -305,6 +320,12 @@ function init() {
 
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+  
+  particleSystem = new THREE.GPUParticleSystem({
+		maxParticles: 250000
+	});
+	
+	scene.add( particleSystem );
 
   pointLight1 = new THREE.PointLight(0xFFFFFF);
   pointLight1.position.x = 0;
@@ -408,7 +429,7 @@ function onDocumentMouseDown( event ) {
     startPlanet.update();
     endPlanet.update();
     
-    comets.push( new Comet(startPlanet.mesh.position.x, startPlanet.mesh.position.y, endPlanet.mesh.position.x, endPlanet.mesh.position.y, 60) );
+    comets = [ new Comet(startPlanet.mesh.position.x, startPlanet.mesh.position.y, endPlanet.mesh.position.x, endPlanet.mesh.position.y, 60) ];
     
     
 
@@ -436,8 +457,10 @@ function animate() {
 
   comets.forEach(function( comet ) {
     comet.render();
-    comet.particleSystem.update(tick);
+    
   });
+  
+  particleSystem.update(tick);
 
   renderer.render( scene, camera );
 
