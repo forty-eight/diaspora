@@ -15,6 +15,9 @@
 - maybe blur circles: http://www.w3schools.com/tags/canvas_shadowblur.asp
 - https://diaspora-contolini.c9users.io/text-effects/Text-Effects.html#shadow
 
+- update count when comet hits
+- ending modal
+
 known bugs
 - planet colors come from firebase so they don't necessarily reflect the color shown on the lobby modal
 - when you reload it fires all previous comets (this is kind of fixed, comets are deleted)
